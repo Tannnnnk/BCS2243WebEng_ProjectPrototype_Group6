@@ -64,7 +64,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $attendance_qr = $storage_folder . $file_name;
             
             // 3. Define the Data inside the QR Code (The link to your attendance form)
-            // Note: Change 'localhost' to your real domain name when you host this online
             $qr_data = "http://10.62.122.105/webeproject/attendance_form.php?event=" . $event_id;
             
             // 4. Generate and save the QR Code image
@@ -338,16 +337,19 @@ mysqli_close($link);
                                                 <button class="btn" style="background: #e2e8f0; color: #a0aec0; cursor: not-allowed;" title="No QR Assigned">QR</button>
                                             <?php endif; ?>
 
-                                            <button type="button" class="btn btn-warning" onclick="openEditForm(
-                                                '<?php echo addslashes($evt['eventID']); ?>',
-                                                '<?php echo addslashes($evt['event_title']); ?>',
-                                                '<?php echo addslashes($evt['event_desc']); ?>',
-                                                '<?php echo addslashes($evt['event_date']); ?>',
-                                                '<?php echo addslashes($evt['event_time']); ?>',
-                                                '<?php echo addslashes($evt['event_venue']); ?>',
-                                                '<?php echo addslashes($evt['event_max_participants']); ?>',
-                                                '<?php echo addslashes($evt['attendance_qr']); ?>'
-                                            )">Edit</button>
+                                            <a href="capacity_control.php?eventID=<?php echo urlencode($evt['eventID']); ?>" class="btn" style="background-color: #6366f1; color: white;" title="Manage Capacity">Capacity</a>
+
+                                            <button type="button" class="btn btn-warning edit-trigger-btn" 
+                                                    data-id="<?php echo htmlspecialchars($evt['eventID']); ?>"
+                                                    data-title="<?php echo htmlspecialchars($evt['event_title']); ?>"
+                                                    data-desc="<?php echo htmlspecialchars($evt['event_desc']); ?>"
+                                                    data-date="<?php echo htmlspecialchars($evt['event_date']); ?>"
+                                                    data-time="<?php echo htmlspecialchars($evt['event_time']); ?>"
+                                                    data-venue="<?php echo htmlspecialchars($evt['event_venue']); ?>"
+                                                    data-max="<?php echo htmlspecialchars($evt['event_max_participants']); ?>"
+                                                    data-qr="<?php echo htmlspecialchars($evt['attendance_qr']); ?>">
+                                                Edit
+                                            </button>
 
                                             <form action="manage_events.php" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this event? All associated registrations and attendance records will also be deleted.');">
                                                 <input type="hidden" name="action" value="delete_event">
@@ -384,23 +386,29 @@ mysqli_close($link);
             }
         }
 
-        // Populates and opens the Edit Form
-        function openEditForm(id, title, desc, date, time, venue, max, qr) {
-            document.getElementById('edit_event_id').value = id;
-            document.getElementById('edit_event_title').value = title;
-            document.getElementById('edit_event_desc').value = desc;
-            document.getElementById('edit_event_date').value = date;
-            document.getElementById('edit_event_time').value = time;
-            document.getElementById('edit_event_venue').value = venue;
-            document.getElementById('edit_event_max').value = max;
-            document.getElementById('edit_attendance_qr').value = qr;
+        // Catch triggers dynamically using clean data bindings
+        document.addEventListener('DOMContentLoaded', function() {
+            const editButtons = document.querySelectorAll('.edit-trigger-btn');
             
-            document.getElementById('addEventForm').style.display = "none";
-            document.getElementById('editEventForm').style.display = "block";
-            
-            // Scroll to the edit form
-            document.getElementById('editEventForm').scrollIntoView({ behavior: 'smooth' });
-        }
+            editButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Populate target input element frameworks cleanly
+                    document.getElementById('edit_event_id').value = this.dataset.id;
+                    document.getElementById('edit_event_title').value = this.dataset.title;
+                    document.getElementById('edit_event_desc').value = this.dataset.desc;
+                    document.getElementById('edit_event_date').value = this.dataset.date;
+                    document.getElementById('edit_event_time').value = this.dataset.time;
+                    document.getElementById('edit_event_venue').value = this.dataset.venue;
+                    document.getElementById('edit_event_max').value = this.dataset.max;
+                    document.getElementById('edit_attendance_qr').value = this.dataset.qr;
+                    
+                    document.getElementById('addEventForm').style.display = "none";
+                    document.getElementById('editEventForm').style.display = "block";
+                    
+                    document.getElementById('editEventForm').scrollIntoView({ behavior: 'smooth' });
+                });
+            });
+        });
     </script>
 </body>
 </html>
