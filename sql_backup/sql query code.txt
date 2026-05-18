@@ -14,11 +14,11 @@ USE `webeproject`;
 -- Table structure for table `administrator`
 -- --------------------------------------------------------
 CREATE TABLE `administrator` (
-  `userID` varchar(100) NOT NULL,
-  `admin_name` varchar(100) DEFAULT NULL,
-  `admin_department` varchar(100) DEFAULT NULL,
-  `admin_position` varchar(50) DEFAULT NULL,
-  `admin_photo` varchar(255) DEFAULT NULL
+  `userID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `admin_name` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `admin_department` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `admin_position` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `admin_photo` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `administrator` (`userID`, `admin_name`, `admin_department`, `admin_position`, `admin_photo`) VALUES
@@ -29,27 +29,28 @@ INSERT INTO `administrator` (`userID`, `admin_name`, `admin_department`, `admin_
 -- Table structure for table `attendance`
 -- --------------------------------------------------------
 CREATE TABLE `attendance` (
-  `attendanceID` varchar(100) NOT NULL,
+  `attendanceID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `attendance_date` date DEFAULT NULL,
   `attendance_time` time DEFAULT NULL,
-  `attendance_status` varchar(20) DEFAULT NULL,
-  `eventID` varchar(100) DEFAULT NULL,
-  `userID` varchar(100) DEFAULT NULL
+  `attendance_status` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `eventID` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `userID` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `attendance` (`attendanceID`, `attendance_date`, `attendance_time`, `attendance_status`, `eventID`, `userID`) VALUES
-('A101', '2026-05-17', '14:34:04', 'Volunteer', 'E101', 'U101');
+('A101', '2026-05-17', '13:03:38', 'Absent', 'E101', 'U101'),
+('A102', '2026-05-17', '13:03:48', 'Volunteer', 'E101', 'U102');
 
 -- --------------------------------------------------------
 -- Table structure for table `club`
 -- --------------------------------------------------------
 CREATE TABLE `club` (
-  `clubID` varchar(100) NOT NULL,
-  `club_name` varchar(100) DEFAULT NULL,
-  `club_desc` varchar(100) DEFAULT NULL,
-  `userID` varchar(100) DEFAULT NULL,
-  `club_operational_status` varchar(100) DEFAULT NULL,
-  `club_photo` varchar(255) DEFAULT NULL
+  `clubID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `club_name` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `club_desc` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `userID` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `club_operational_status` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `club_photo` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `club` (`clubID`, `club_name`, `club_desc`, `userID`, `club_operational_status`, `club_photo`) VALUES
@@ -59,22 +60,22 @@ INSERT INTO `club` (`clubID`, `club_name`, `club_desc`, `userID`, `club_operatio
 -- Table structure for table `committee`
 -- --------------------------------------------------------
 CREATE TABLE `committee` (
-  `committeeID` varchar(100) NOT NULL,
-  `eventID` varchar(100) DEFAULT NULL,
-  `memberID` varchar(100) DEFAULT NULL
+  `committeeID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `eventID` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `memberID` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `committee` (`committeeID`, `eventID`, `memberID`) VALUES
-('CM101', 'E101', 'M101');
+('CM101', 'E101', 'M102');
 
 -- --------------------------------------------------------
 -- Table structure for table `eventregistration`
 -- --------------------------------------------------------
 CREATE TABLE `eventregistration` (
-  `userID` varchar(100) NOT NULL,
-  `eventID` varchar(100) NOT NULL,
+  `userID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `eventID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `registration_date` date DEFAULT NULL,
-  `registration_status` varchar(100) DEFAULT NULL
+  `registration_status` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `eventregistration` (`userID`, `eventID`, `registration_date`, `registration_status`) VALUES
@@ -84,42 +85,43 @@ INSERT INTO `eventregistration` (`userID`, `eventID`, `registration_date`, `regi
 -- Table structure for table `events`
 -- --------------------------------------------------------
 CREATE TABLE `events` (
-  `eventID` varchar(100) NOT NULL,
-  `event_title` varchar(100) DEFAULT NULL,
-  `event_desc` varchar(255) DEFAULT NULL,
+  `eventID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `event_title` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `event_desc` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `event_date` date DEFAULT NULL,
   `event_time` time DEFAULT NULL,
-  `event_venue` varchar(100) DEFAULT NULL,
-  `event_max_participants` int(11) DEFAULT NULL,
-  `attendance_qr` varchar(255) DEFAULT NULL
+  `event_venue` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `event_max_participants` int DEFAULT NULL,
+  `attendance_qr` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `events` (`eventID`, `event_title`, `event_desc`, `event_date`, `event_time`, `event_venue`, `event_max_participants`, `attendance_qr`) VALUES
 ('E101', 'Badminton Championship Cup 25/26', 'Badminton Competition', '2026-09-27', '07:00:00', 'Dewan Serbaguna, UMPSA Pekan', 64, NULL),
-('E102', 'Chess Competition', 'hi', '2026-05-23', '18:00:00', 'Library', 64, 'qrcodes/E102_qr.png'),
-('E103', 'hihih', 'hihih', '2026-05-17', '14:27:00', 'Library', 77, 'qrcodes/E103_qr.png');
+('E103', 'AD', 'FAD', '2026-05-17', '14:29:00', 'FAEDF', 324, 'qrcodes/E103_qr.png'),
+('E104', 'adf', 'gsg', '2026-05-13', '15:06:00', 'gsa', 34, 'qrcodes/E104_qr.png');
 
 -- --------------------------------------------------------
 -- Table structure for table `membership`
 -- --------------------------------------------------------
 CREATE TABLE `membership` (
-  `memberID` varchar(100) NOT NULL,
+  `memberID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `start_date` date DEFAULT NULL,
   `end_date` date DEFAULT NULL,
-  `userID` varchar(100) DEFAULT NULL,
-  `clubID` varchar(100) DEFAULT NULL,
-  `roleID` varchar(100) DEFAULT NULL
+  `userID` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `clubID` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `roleID` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `membership` (`memberID`, `start_date`, `end_date`, `userID`, `clubID`, `roleID`) VALUES
-('M101', '2026-05-12', '2027-05-12', 'U101', 'C101', 'R01');
+('M101', '2026-05-12', '2027-05-12', 'U101', 'C101', 'R01'),
+('M102', '2026-05-12', '2027-05-12', 'U102', 'C101', 'R05');
 
 -- --------------------------------------------------------
 -- Table structure for table `membershiprole`
 -- --------------------------------------------------------
 CREATE TABLE `membershiprole` (
-  `roleID` varchar(100) NOT NULL,
-  `m_role_desc` varchar(50) DEFAULT NULL
+  `roleID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `m_role_desc` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `membershiprole` (`roleID`, `m_role_desc`) VALUES
@@ -136,26 +138,29 @@ INSERT INTO `membershiprole` (`roleID`, `m_role_desc`) VALUES
 -- Table structure for table `points`
 -- --------------------------------------------------------
 CREATE TABLE `points` (
-  `pointID` varchar(100) NOT NULL,
-  `total_points` int(11) DEFAULT NULL,
-  `stu_enforce` varchar(100) DEFAULT NULL,
-  `point_value` int(11) DEFAULT NULL,
-  `attendanceID` varchar(100) DEFAULT NULL,
-  `userID` varchar(100) DEFAULT NULL
+  `pointID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `stu_enforce` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `point_value` int DEFAULT NULL,
+  `attendanceID` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `userID` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `points` (`pointID`, `stu_enforce`, `point_value`, `attendanceID`, `userID`) VALUES
+('P101', 'Absent without notice', -10, 'A101', 'U101'),
+('P102', 'Volunteer/helper in the event', 5, 'A102', 'U102');
 
 -- --------------------------------------------------------
 -- Table structure for table `students`
 -- --------------------------------------------------------
 CREATE TABLE `students` (
-  `userID` varchar(100) NOT NULL,
-  `stu_ID` varchar(10) DEFAULT NULL,
-  `stu_name` varchar(100) DEFAULT NULL,
-  `stu_email` varchar(100) DEFAULT NULL,
-  `stu_address` varchar(255) DEFAULT NULL,
-  `stu_role` varchar(50) DEFAULT NULL,
-  `stu_contact_no` varchar(15) DEFAULT NULL,
-  `stu_profile_photo` varchar(255) DEFAULT NULL
+  `userID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `stu_ID` varchar(10) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `stu_name` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `stu_email` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `stu_address` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `stu_role` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `stu_contact_no` varchar(15) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `stu_profile_photo` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `students` (`userID`, `stu_ID`, `stu_name`, `stu_email`, `stu_address`, `stu_role`, `stu_contact_no`, `stu_profile_photo`) VALUES
@@ -167,10 +172,10 @@ INSERT INTO `students` (`userID`, `stu_ID`, `stu_name`, `stu_email`, `stu_addres
 -- Table structure for table `users`
 -- --------------------------------------------------------
 CREATE TABLE `users` (
-  `userID` varchar(100) NOT NULL,
-  `user_username` varchar(50) DEFAULT NULL,
-  `user_password` varchar(50) DEFAULT NULL,
-  `user_role` varchar(20) DEFAULT NULL
+  `userID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `user_username` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `user_password` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `user_role` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `users` (`userID`, `user_username`, `user_password`, `user_role`) VALUES
