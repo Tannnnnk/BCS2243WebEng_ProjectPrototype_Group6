@@ -260,10 +260,10 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
                     </div>
 
                     <div class="dashboard-actions">
-                        <a href="#browse" class="action-card">🔍 Browse Events</a>
-                        <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">📌 My Registration</a>
-                        <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">⏳ Event History</a>
-                    </div>
+    <a href="browse_events.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">🔍 Browse Events</a>
+    <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">📌 My Registration</a>
+    ...
+</div>
 
                     <div id="browse">
                         <table>
