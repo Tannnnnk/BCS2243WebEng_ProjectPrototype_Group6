@@ -1,11 +1,11 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+// basic debugging setup for local testing
 error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 session_start();
 
-// Guard Check: Secure the context to authenticate Student users
+// check if user logged in properly
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     header("Location: ../login.php");
     exit();
@@ -17,68 +17,69 @@ $userID = $_SESSION['userID'];
 $username = $_SESSION['user_username'];
 $role = $_SESSION['user_role'];
 
-// --- DB QUERY: FETCH CURRENT STUDENT INFORMATION & PROFILE PICTURE ---
+// get student avatar and name details
 $photo_path = "";
 $stu_name = $username; 
 
-$sql_profile = "SELECT stu_name, stu_profile_photo FROM students WHERE userID = '$userID'";
-$result_profile = mysqli_query($link, $sql_profile);
+$profile_sql = "SELECT stu_name, stu_profile_photo FROM students WHERE userID = '$userID'";
+$profile_run = mysqli_query($link, $profile_sql);
 
-if ($result_profile && $row = mysqli_fetch_assoc($result_profile)) {
-    $photo_path = !empty($row['stu_profile_photo']) ? $row['stu_profile_photo'] : "";
-    $stu_name = !empty($row['stu_name']) ? $row['stu_name'] : $username;
+if ($profile_run && $p_row = mysqli_fetch_assoc($profile_run)) {
+    $photo_path = !empty($p_row['stu_profile_photo']) ? $p_row['stu_profile_photo'] : "";
+    $stu_name = !empty($p_row['stu_name']) ? $p_row['stu_name'] : $username;
 }
 
+// define avatar logic
 $target_file = __DIR__ . '/../uploads/' . $photo_path;
-
 if (!empty($photo_path) && file_exists($target_file)) {
     $img_src = "../uploads/" . htmlspecialchars($photo_path);
 } else {
     $img_src = "../images/default-avatar.png"; 
 }
 
-$username = '<img src="' . $img_src . '" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; display: inline-block; vertical-align: middle; margin-right: 12px; border: 2px solid #ffffff;">' . htmlspecialchars($stu_name);
+// format username display line
+$username_display = '<img src="' . $img_src . '" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; display: inline-block; vertical-align: middle; margin-right: 12px; border: 2px solid #fff;">' . htmlspecialchars($stu_name);
 
-// --- 2. PRIVILEGE CHECK: CHECK IF COMMITTEE IN ANY CLUB (roleID < 'R08') ---
-$check_committee = "SELECT m.*, mr.m_role_desc FROM membership m 
-                    JOIN membershiprole mr ON m.roleID = mr.roleID 
-                    WHERE m.userID = '$userID' AND m.roleID < 'R08' LIMIT 1";
-$res_committee = mysqli_query($link, $check_committee);
-$is_committee = (mysqli_num_rows($res_committee) > 0);
+// check if the current user is a committee member (role < R08)
+$check_comm_sql = "SELECT m.*, mr.m_role_desc FROM membership m 
+                   JOIN membershiprole mr ON m.roleID = mr.roleID 
+                   WHERE m.userID = '$userID' AND m.roleID < 'R08' LIMIT 1";
+$comm_run = mysqli_query($link, $check_comm_sql);
+$is_comm = (mysqli_num_rows($comm_run) > 0);
 
 $committee_role = "General Student";
-if ($is_committee) {
-    $com_row = mysqli_fetch_assoc($res_committee);
-    $committee_role = $com_row['m_role_desc'];
+if ($is_comm) {
+    $c_row = mysqli_fetch_assoc($comm_run);
+    $committee_role = $c_row['m_role_desc'];
 }
 
 $msg = "";
 $msg_type = "";
 
-// --- FETCH CLUB ID FROM URL OR FALLBACK TO CLUB TABLE ---
+// get club id from url parameter, fallback to database if missing
 $clubID = isset($_GET['clubID']) ? mysqli_real_escape_string($link, $_GET['clubID']) : '';
 
 if (empty($clubID)) {
-    // Pull explicitly from the 'club' table 
-    $fallback_query = "SELECT clubID FROM club LIMIT 1";
-    $fallback_res = mysqli_query($link, $fallback_query);
-    if ($fallback_res && $fallback_row = mysqli_fetch_assoc($fallback_res)) {
-        $clubID = $fallback_row['clubID'];
+    $fallback = mysqli_query($link, "SELECT clubID FROM club LIMIT 1");
+    if ($fallback && $f_row = mysqli_fetch_assoc($fallback)) {
+        $clubID = $f_row['clubID'];
     }
 }
 
-// --- 3. ACTION PROCESSOR: STUDENT SELF-REGISTRATION ---
+// registration processing block
 if (isset($_POST['register_event'])) {
     $eventID = mysqli_real_escape_string($link, $_POST['eventID']);
-    $today = date('Y-m-d');
+    $today_date = date('Y-m-d');
     
-    $check_dup = mysqli_query($link, "SELECT * FROM eventregistration WHERE userID = '$userID' AND eventID = '$eventID'");
-    if (mysqli_num_rows($check_dup) > 0) {
+    // prevent multiple registrations
+    $dup_check = mysqli_query($link, "SELECT * FROM eventregistration WHERE userID = '$userID' AND eventID = '$eventID'");
+    if (mysqli_num_rows($dup_check) > 0) {
         $msg = "⚠️ You are already registered for this event.";
         $msg_type = "error";
     } else {
-        $ins = "INSERT INTO eventregistration (userID, eventID, registration_date, registration_status) VALUES ('$userID', '$eventID', '$today', 'Confirmed')";
-        if (mysqli_query($link, $ins)) {
+        $insert_sql = "INSERT INTO eventregistration (userID, eventID, registration_date, registration_status) 
+                       VALUES ('$userID', '$eventID', '$today_date', 'Confirmed')";
+        if (mysqli_query($link, $insert_sql)) {
             $msg = "🎉 Successfully registered for the event!";
             $msg_type = "success";
         } else {
@@ -88,8 +89,8 @@ if (isset($_POST['register_event'])) {
     }
 }
 
-// --- 4. ACTION PROCESSOR: COMMITTEE DIRECT TRACK REMOVAL ---
-if (isset($_GET['delete_id']) && $is_committee) {
+// delete event block (only allowed for committee users)
+if (isset($_GET['delete_id']) && $is_comm) {
     $del_id = mysqli_real_escape_string($link, $_GET['delete_id']);
     if (mysqli_query($link, "DELETE FROM events WHERE eventID = '$del_id'")) {
         $msg = "✅ Event successfully removed.";
@@ -100,36 +101,33 @@ if (isset($_GET['delete_id']) && $is_committee) {
     }
 }
 
-// --- 5. COMPILING STATISTICAL METRICS ---
+// database metrics collection
 $total_events = 0;
-$res_count = mysqli_query($link, "SELECT COUNT(*) as total FROM events");
-if ($res_count) { $total_events = mysqli_fetch_assoc($res_count)['total']; }
+$q1 = mysqli_query($link, "SELECT COUNT(*) as total FROM events");
+if ($q1) { $total_events = mysqli_fetch_assoc($q1)['total']; }
 
 $total_pax = 0;
-$res_pax = mysqli_query($link, "SELECT COUNT(*) as total FROM eventregistration");
-if ($res_pax) { $total_pax = mysqli_fetch_assoc($res_pax)['total']; }
+$q2 = mysqli_query($link, "SELECT COUNT(*) as total FROM eventregistration");
+if ($q2) { $total_pax = mysqli_fetch_assoc($q2)['total']; }
 
-$my_registrations_count = 0;
-$res_my_reg = mysqli_query($link, "SELECT COUNT(*) as total FROM eventregistration WHERE userID = '$userID'");
-if ($res_my_reg) { $my_registrations_count = mysqli_fetch_assoc($res_my_reg)['total']; }
+$my_reg_count = 0;
+$q3 = mysqli_query($link, "SELECT COUNT(*) as total FROM eventregistration WHERE userID = '$userID'");
+if ($q3) { $my_reg_count = mysqli_fetch_assoc($q3)['total']; }
 
-$active_upcoming = 0;
-$res_upcoming = mysqli_query($link, "SELECT COUNT(*) as total FROM events WHERE event_date >= CURDATE()");
-if ($res_upcoming) { $active_upcoming = mysqli_fetch_assoc($res_upcoming)['total']; }
+$upcoming_count = 0;
+$q4 = mysqli_query($link, "SELECT COUNT(*) as total FROM events WHERE event_date >= CURDATE()");
+if ($q4) { $upcoming_count = mysqli_fetch_assoc($q4)['total']; }
 
-// Fetch user merit points total
+// point system summation
 $total_points = 0;
-$res_points = mysqli_query($link, "SELECT SUM(point_value) as points FROM points WHERE userID = '$userID'");
-if ($res_points && $row = mysqli_fetch_assoc($res_points)) {
-    $total_points = $row['points'] ? $row['points'] : 0;
+$q5 = mysqli_query($link, "SELECT SUM(point_value) as points FROM points WHERE userID = '$userID'");
+if ($q5 && $p_row = mysqli_fetch_assoc($q5)) {
+    $total_points = $p_row['points'] ? $p_row['points'] : 0;
 }
 
-// Global dataset execution
-$query_all = "SELECT * FROM events ORDER BY event_date ASC";
-$result_events = mysqli_query($link, $query_all);
-
-$query_rec = "SELECT * FROM events WHERE event_date >= CURDATE() ORDER BY event_date ASC LIMIT 3";
-$recommended_events = mysqli_query($link, $query_rec);
+// general data pulling queries
+$events_result = mysqli_query($link, "SELECT * FROM events ORDER BY event_date ASC");
+$rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURDATE() ORDER BY event_date ASC LIMIT 3");
 ?>
 
 <!DOCTYPE html>
@@ -143,29 +141,38 @@ $recommended_events = mysqli_query($link, $query_rec);
         .alert { padding: 12px 20px; border-radius: 6px; font-weight: 500; font-size: 14px; }
         .alert.success { background-color: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
         .alert.error { background-color: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+        
         .central-board { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .board-title { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
-        .actions-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
-        .actions-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+        
+        /* natural css names instead of strict numerical tracking */
+        .dashboard-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .action-card { background: #f8fafc; border: 1px dashed #cbd5e1; padding: 15px; text-align: center; border-radius: 8px; text-decoration: none; color: #475569; font-size: 13px; font-weight: 600; transition: 0.2s; }
         .action-card:hover { background: #ecfdf5; border-color: #10b981; color: #065f46; }
+        
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th { background-color: #f8fafc; padding: 12px; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: bold; border-bottom: 2px solid #e2e8f0; }
         td { padding: 14px 12px; font-size: 14px; color: #334155; border-bottom: 1px solid #f1f5f9; }
+        
         .btn { padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; border: none; cursor: pointer; display: inline-block; }
         .btn-register { background-color: #3b82f6; color: white; }
         .btn-register:hover { background-color: #2563eb; }
         .btn-edit { background-color: #f59e0b; color: white; margin-right: 5px; }
         .btn-delete { background-color: #ef4444; color: white; }
+        
         .role-indicator { font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 12px; text-transform: uppercase; }
         .ind-com { background-color: #fef3c7; color: #d97706; }
         .ind-stu { background-color: #e0f2fe; color: #0369a1; }
+        
         .footer-split { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 5px; }
+        @media(max-width: 768px) { .footer-split { grid-template-columns: 1fr; } }
+        
         .split-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .split-card h3 { font-size: 14px; color: #64748b; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 0.5px; }
         .stat-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #475569; }
         .stat-item:last-child { border-bottom: none; }
         .stat-item span { font-weight: bold; color: #1e293b; font-size: 16px; }
+        
         .chart-placeholder { background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 8px; height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #94a3b8; font-size: 13px; text-align: center; gap: 5px; margin-top: 10px; }
         .rec-item { padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
         .rec-item:last-child { border-bottom: none; }
@@ -184,7 +191,7 @@ $recommended_events = mysqli_query($link, $query_rec);
                 <div class="alert <?php echo $msg_type; ?>"><?php echo $msg; ?></div>
             <?php endif; ?>
 
-            <?php if ($is_committee): ?>
+            <?php if ($is_comm): ?>
                 <div class="central-board">
                     <div class="board-title">
                         <span>🛠️ Member Dashboard (Committee Console)</span>
@@ -193,7 +200,7 @@ $recommended_events = mysqli_query($link, $query_rec);
                         </div>
                     </div>
 
-                    <div class="actions-grid-4">
+                    <div class="dashboard-actions">
                         <a href="create_event.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">➕ Create Events</a>
                         <a href="manage_events.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">📝 Manage Event</a>
                         <a href="manage_attendance.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">📋 Event Participant List</a>
@@ -210,15 +217,15 @@ $recommended_events = mysqli_query($link, $query_rec);
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if ($result_events && mysqli_num_rows($result_events) > 0): ?>
-                                <?php while ($event = mysqli_fetch_assoc($result_events)): ?>
+                            <?php if ($events_result && mysqli_num_rows($events_result) > 0): ?>
+                                <?php while ($row = mysqli_fetch_assoc($events_result)): ?>
                                     <tr>
-                                        <td><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></td>
-                                        <td>📍 <?php echo htmlspecialchars($event['event_venue']); ?></td>
-                                        <td>📅 <?php echo date('d M Y', strtotime($event['event_date'])); ?></td>
+                                        <td><strong><?php echo htmlspecialchars($row['event_title']); ?></strong></td>
+                                        <td>📍 <?php echo htmlspecialchars($row['event_venue']); ?></td>
+                                        <td>📅 <?php echo date('d M Y', strtotime($row['event_date'])); ?></td>
                                         <td>
-                                            <a href="manage_events.php?edit_id=<?php echo $event['eventID']; ?>&clubID=<?php echo urlencode($clubID); ?>" class="btn btn-edit">Edit</a>
-                                            <a href="event_directory.php?delete_id=<?php echo $event['eventID']; ?>&clubID=<?php echo urlencode($clubID); ?>" class="btn btn-delete" onclick="return confirm('Are you sure you want to permanently delete this event track record?');">Delete</a>
+                                            <a href="manage_events.php?edit_id=<?php echo $row['eventID']; ?>&clubID=<?php echo urlencode($clubID); ?>" class="btn btn-edit">Edit</a>
+                                            <a href="event_directory.php?delete_id=<?php echo $row['eventID']; ?>&clubID=<?php echo urlencode($clubID); ?>" class="btn btn-delete" onclick="return confirm('Are you sure you want to permanently delete this event track record?');">Delete</a>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
@@ -233,7 +240,7 @@ $recommended_events = mysqli_query($link, $query_rec);
                     <div class="split-card">
                         <h3>📊 Summary</h3>
                         <div class="stat-item">Total Event <span><?php echo $total_events; ?></span></div>
-                        <div class="stat-item">Upcoming Event <span><?php echo $active_upcoming; ?></span></div>
+                        <div class="stat-item">Upcoming Event <span><?php echo $upcoming_count; ?></span></div>
                         <div class="stat-item">Total Participants <span><?php echo $total_pax; ?></span></div>
                     </div>
                     <div class="split-card">
@@ -252,7 +259,7 @@ $recommended_events = mysqli_query($link, $query_rec);
                         <span class="role-indicator ind-stu">Viewing as: Student</span>
                     </div>
 
-                    <div class="actions-grid-3">
+                    <div class="dashboard-actions">
                         <a href="#browse" class="action-card">🔍 Browse Events</a>
                         <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">📌 My Registration</a>
                         <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">⏳ Event History</a>
@@ -269,16 +276,16 @@ $recommended_events = mysqli_query($link, $query_rec);
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if ($result_events && mysqli_num_rows($result_events) > 0): ?>
-                                    <?php mysqli_data_seek($result_events, 0); // Reset pointer ?>
-                                    <?php while ($event = mysqli_fetch_assoc($result_events)): ?>
+                                <?php if ($events_result && mysqli_num_rows($events_result) > 0): ?>
+                                    <?php mysqli_data_seek($events_result, 0); ?>
+                                    <?php while ($row = mysqli_fetch_assoc($events_result)): ?>
                                         <tr>
-                                            <td><strong><?php echo htmlspecialchars($event['event_title']); ?></strong></td>
-                                            <td>📍 <?php echo htmlspecialchars($event['event_venue']); ?></td>
-                                            <td>📅 <?php echo date('d M Y', strtotime($event['event_date'])); ?></td>
+                                            <td><strong><?php echo htmlspecialchars($row['event_title']); ?></strong></td>
+                                            <td>📍 <?php echo htmlspecialchars($row['event_venue']); ?></td>
+                                            <td>📅 <?php echo date('d M Y', strtotime($row['event_date'])); ?></td>
                                             <td>
                                                 <form method="POST" action="event_directory.php?clubID=<?php echo urlencode($clubID); ?>" style="display:inline;">
-                                                    <input type="hidden" name="eventID" value="<?php echo htmlspecialchars($event['eventID']); ?>">
+                                                    <input type="hidden" name="eventID" value="<?php echo htmlspecialchars($row['eventID']); ?>">
                                                     <button type="submit" name="register_event" class="btn btn-register">Register for Event</button>
                                                 </form>
                                             </td>
@@ -295,18 +302,18 @@ $recommended_events = mysqli_query($link, $query_rec);
                 <div class="footer-split">
                     <div class="split-card">
                         <h3>📊 Summary Section</h3>
-                        <div class="stat-item">Registered Events <span><?php echo $my_registrations_count; ?></span></div>
-                        <div class="stat-item">Upcoming Events Available <span><?php echo $active_upcoming; ?></span></div>
+                        <div class="stat-item">Registered Events <span><?php echo $my_reg_count; ?></span></div>
+                        <div class="stat-item">Upcoming Events Available <span><?php echo $upcoming_count; ?></span></div>
                         <div class="stat-item">Participants Points Earned <span><?php echo $total_points; ?> pts</span></div>
                     </div>
 
                     <div class="split-card">
                         <h3>🌟 Event Recommendation Section</h3>
-                        <?php if ($recommended_events && mysqli_num_rows($recommended_events) > 0): ?>
-                            <?php while ($rec = mysqli_fetch_assoc($recommended_events)): ?>
+                        <?php if ($rec_result && mysqli_num_rows($rec_result) > 0): ?>
+                            <?php while ($rec_row = mysqli_fetch_assoc($rec_result)): ?>
                                 <div class="rec-item">
-                                    <div class="rec-title">🔥 [Club ID: <?php echo htmlspecialchars($clubID); ?>] <?php echo htmlspecialchars($rec['event_title']); ?></div>
-                                    <div class="rec-meta">Location: <?php echo htmlspecialchars($rec['event_venue']); ?> | Date: <?php echo date('d M Y', strtotime($rec['event_date'])); ?></div>
+                                    <div class="rec-title">🔥 [Club ID: <?php echo htmlspecialchars($clubID); ?>] <?php echo htmlspecialchars($rec_row['event_title']); ?></div>
+                                    <div class="rec-meta">Location: <?php echo htmlspecialchars($rec_row['event_venue']); ?> | Date: <?php echo date('d M Y', strtotime($rec_row['event_date'])); ?></div>
                                 </div>
                             <?php endwhile; ?>
                         <?php else: ?>
