@@ -17,7 +17,7 @@ $userID = $_SESSION['userID'];
 $username = $_SESSION['user_username'];
 $role = $_SESSION['user_role'];
 
-// get student avatar and name details
+// get student pro and name details
 $photo_path = "";
 $stu_name = $username; 
 
@@ -29,7 +29,7 @@ if ($profile_run && $p_row = mysqli_fetch_assoc($profile_run)) {
     $stu_name = !empty($p_row['stu_name']) ? $p_row['stu_name'] : $username;
 }
 
-// define avatar logic
+// define pro logic
 $target_file = __DIR__ . '/../uploads/' . $photo_path;
 if (!empty($photo_path) && file_exists($target_file)) {
     $img_src = "../uploads/" . htmlspecialchars($photo_path);
@@ -40,7 +40,7 @@ if (!empty($photo_path) && file_exists($target_file)) {
 // format username display line
 $username_display = '<img src="' . $img_src . '" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; display: inline-block; vertical-align: middle; margin-right: 12px; border: 2px solid #fff;">' . htmlspecialchars($stu_name);
 
-// check if the current user is a committee member (role < R08)
+// check if the current user is a committee member 
 $check_comm_sql = "SELECT m.*, mr.m_role_desc FROM membership m 
                    JOIN membershiprole mr ON m.roleID = mr.roleID 
                    WHERE m.userID = '$userID' AND m.roleID < 'R08' LIMIT 1";
