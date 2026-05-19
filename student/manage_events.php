@@ -51,8 +51,7 @@ if (isset($_POST['update_event'])) {
     $venue                  = mysqli_real_escape_string($link, $_POST['event_venue']);
     $event_max_participants = intval($_POST['event_max_participants']);
     
-    // Note: If you eventually want to save the changed clubID directly into the events table,
-    // you would add `clubID = '$chosen_clubID'` here once your database column structure supports it.
+
     $update_query = "UPDATE events SET 
                         event_title = '$title', 
                         event_desc = '$desc', 
