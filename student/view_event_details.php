@@ -34,7 +34,7 @@ if ($result_profile && $row = mysqli_fetch_assoc($result_profile)) {
     $stu_name = !empty($row['stu_name']) ? $row['stu_name'] : $username;
 }
 
-// --- THE FORMULA: FETCH EVENT DETAILS WITH CONNECTED CLUB ID FROM MEMBERSHIP ---
+//clubid
 $query = "SELECT e.*, m.clubID 
           FROM events e 
           INNER JOIN membership m ON m.userID = '$userID' 
