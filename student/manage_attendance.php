@@ -91,7 +91,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_POST['selected_commit
     $msg_type = "error";
 }
 
-// FIXED QUERY SYSTEM: Connected via INNER JOIN to pull the actual text names from your students table
+//Connected via INNER JOIN to pull the actual text names from your students table
 $query_participants = "SELECT 
                         r.userID, 
                         s.stu_name AS commitee_real_name, 
