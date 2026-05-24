@@ -98,11 +98,11 @@ if ($remaining_slots < 0) $remaining_slots = 0;
 $fill_percentage = ($max_capacity > 0) ? round(($active_count / $max_capacity) * 100) : 0;
 if ($fill_percentage > 100) $fill_percentage = 100;
 
-// 4. Fetch the Waiting list queue records matching your student schema explicitly
+// 4. Fetch the Waiting list queue records matching your students schema explicitly
 $waiting_list_records = [];
 $queue_sql = "SELECT a.attendanceID, a.attendance_date, a.attendance_time, s.stu_ID, s.stu_name, s.stu_email 
               FROM attendance a
-              JOIN student s ON a.userID = s.userID 
+              JOIN students s ON a.userID = s.userID 
               WHERE a.eventID = '$eventID' AND a.attendance_status = 'Absent'
               ORDER BY a.attendance_date ASC, a.attendance_time ASC";
 $queue_res = mysqli_query($link, $queue_sql);
@@ -173,7 +173,7 @@ mysqli_close($link);
 </head>
 <body>
 
-    <?php include '../administrator_background.php'; ?>
+    <?php include 'administrator_background.php'; ?>
     
     <div class="content-area">
         
