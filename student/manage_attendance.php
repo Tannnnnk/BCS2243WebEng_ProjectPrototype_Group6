@@ -20,7 +20,6 @@ if (empty($eventID)) {
     exit();
 }
 
-
 $userID = $_SESSION['userID'];
 $username = isset($_SESSION['user_username']) ? $_SESSION['user_username'] : 'Student';
 $role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : 'Student';
@@ -37,7 +36,6 @@ if ($result_profile && $row = mysqli_fetch_assoc($result_profile)) {
     $stu_name = !empty($row['stu_name']) ? $row['stu_name'] : $username;
 }
 
-
 $target_file = __DIR__ . '/../uploads/' . $photo_path;
 
 if (!empty($photo_path) && file_exists($target_file)) {
@@ -46,7 +44,6 @@ if (!empty($photo_path) && file_exists($target_file)) {
     // Falls back to your default avatar picture asset if missing
     $img_src = "../images/default-avatar.png"; 
 }
-
 
 $username = '<img src="' . $img_src . '" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; display: inline-block; vertical-align: middle; margin-right: 12px; border: 2px solid #ffffff;">' . htmlspecialchars($stu_name);
 // ---------------------------------------------------------------------
@@ -61,7 +58,7 @@ if ($event_query && $ev = mysqli_fetch_assoc($event_query)) {
 $msg = "";
 $msg_type = "";
 
-// MULTI-ACTION HANDLER: Processes Checked Commitee Bulk Request
+// MULTI-ACTION HANDLER: Processes Bulk Selection Requests directly on your Attendance Records
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['selected_commitee']) && is_array($_POST['selected_commitee'])) {
     $selected_users = array_map(function($id) use ($link) {
         return "'" . mysqli_real_escape_string($link, $id) . "'";
@@ -70,37 +67,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['selected_commitee']) 
     $user_id_list = implode(',', $selected_users);
 
     if (isset($_POST['action_approve'])) {
-        // Bulk Approve rows inside your eventregistration schema table
-        $bulk_update = "UPDATE eventregistration SET registration_status = 'Confirmed' WHERE eventID = '$eventID' AND userID IN ($user_id_list)";
+        // Bulk Update selected rows to 'Present' status with current tracking timestamp
+        $bulk_update = "UPDATE attendance SET attendance_status = 'Present', attendance_time = NOW() WHERE eventID = '$eventID' AND userID IN ($user_id_list)";
         if (mysqli_query($link, $bulk_update)) {
-            $msg = "✅ Selected participant registration statuses updated to Confirmed successfully.";
+            $msg = "✅ Selected participant attendance status updated to Present successfully.";
             $msg_type = "success";
         }
     } elseif (isset($_POST['action_remove'])) {
-        // Bulk Remove rows cleanly
-        $bulk_delete = "DELETE FROM eventregistration WHERE eventID = '$eventID' AND userID IN ($user_id_list)";
+        // Clear active tracking data rows securely
+        $bulk_delete = "DELETE FROM attendance WHERE eventID = '$eventID' AND userID IN ($user_id_list)";
         if (mysqli_query($link, $bulk_delete)) {
-            mysqli_query($link, "DELETE FROM attendance WHERE eventID = '$eventID' AND userID IN ($user_id_list)");
-            $msg = "🗑️ Selected participants successfully removed from the registration roster.";
+            $msg = "🗑️ Selected participants successfully removed from the tracking list.";
             $msg_type = "success";
         }
     }
 }
 elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_POST['selected_commitee']) || !is_array($_POST['selected_commitee']))) {
-    $msg = "⚠️ Please select at least one commitee profile row using the checkboxes first.";
+    $msg = "⚠️ Please select at least one participant row using the checkboxes first.";
     $msg_type = "error";
 }
 
-//Connected via INNER JOIN to pull the actual text names from your students table
+// Connected via INNER JOIN to match your drawing columns: StudentID, StudentName, Attendance Time, Status
 $query_participants = "SELECT 
-                        r.userID, 
-                        s.stu_name AS commitee_real_name, 
-                        r.registration_status,
+                        a.attendanceID,
+                        a.userID, 
+                        s.stu_name AS student_real_name, 
+                        a.attendance_time,
                         COALESCE(a.attendance_status, 'Not Checked') AS att_status
-                       FROM eventregistration r 
-                       INNER JOIN students s ON r.userID = s.userID
-                       LEFT JOIN attendance a ON r.eventID = a.eventID AND r.userID = a.userID
-                       WHERE r.eventID = '$eventID'";
+                       FROM attendance a 
+                       INNER JOIN students s ON a.userID = s.userID
+                       WHERE a.eventID = '$eventID'";
 
 $result_participants = mysqli_query($link, $query_participants);
 $total_participants = $result_participants ? mysqli_num_rows($result_participants) : 0;
@@ -176,9 +172,9 @@ $total_participants = $result_participants ? mysqli_num_rows($result_participant
                     <thead>
                         <tr>
                             <th width="50px"><input type="checkbox" id="select_all_trigger" class="chk-box" onclick="toggleSelectAll(this)"></th>
-                            <th>Commitee ID</th>
-                            <th>Commitee Name</th>
-                            <th>Attendance Type</th>
+                            <th>StudentID</th>
+                            <th>StudentName</th>
+                            <th>Attendance Time</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -190,15 +186,15 @@ $total_participants = $result_participants ? mysqli_num_rows($result_participant
                                         <input type="checkbox" name="selected_commitee[]" value="<?php echo $row['userID']; ?>" class="chk-box commitee-record-checkbox">
                                     </td>
                                     <td><code><?php echo htmlspecialchars($row['userID']); ?></code></td>
-                                    <td><strong><?php echo htmlspecialchars($row['commitee_real_name']); ?></strong></td>
+                                    <td><strong><?php echo htmlspecialchars($row['student_real_name']); ?></strong></td>
                                     <td>
-                                        <span class="badge badge-neutral">📍 <?php echo strtoupper(htmlspecialchars($row['att_status'])); ?></span>
+                                        🕒 <?php echo (!empty($row['attendance_time']) && $row['att_status'] === 'Present') ? date('h:i A (d M)', strtotime($row['attendance_time'])) : '<span style="color: #94a3b8; font-style: italic;">Not Logged</span>'; ?>
                                     </td>
                                     <td>
-                                        <?php if (strtolower($row['registration_status']) == 'confirmed'): ?>
-                                            <span class="badge badge-approved">Confirmed</span>
+                                        <?php if (strtolower($row['att_status']) == 'present'): ?>
+                                            <span class="badge badge-approved">Present</span>
                                         <?php else: ?>
-                                            <span class="badge badge-pending"><?php echo htmlspecialchars($row['registration_status']); ?></span>
+                                            <span class="badge badge-neutral">Not Checked</span>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -206,7 +202,7 @@ $total_participants = $result_participants ? mysqli_num_rows($result_participant
                         <?php else: ?>
                             <tr>
                                 <td colspan="5" style="text-align: center; color: #94a3b8; padding: 40px;">
-                                    No commitee profiles match registration parameters for this Event ID yet.
+                                    No active tracking log rows found inside your database parameters for this Event ID.
                                 </td>
                             </tr>
                         <?php endif; ?>
@@ -214,7 +210,7 @@ $total_participants = $result_participants ? mysqli_num_rows($result_participant
                 </table>
 
                 <div class="action-row-footer">
-                    <a href="manage_events.php" class="btn btn-back">⬅️ Back to Main Dashboard</a>
+                    <a href="manage_events.php" class="btn btn-back">⬅️ Back to Main Workspace</a>
                     <div style="display: flex; gap: 10px;">
                         <button type="submit" name="action_remove" class="btn btn-remove" onclick="return confirm('Are you sure you want to remove the selected entries?')">Remove</button>
                         <button type="submit" name="action_approve" class="btn btn-approve">Approve</button>

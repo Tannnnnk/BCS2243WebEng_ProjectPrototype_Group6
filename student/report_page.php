@@ -12,7 +12,6 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 require_once '../db_connection.php';
 
-
 $userID = $_SESSION['userID'];
 $username = isset($_SESSION['user_username']) ? $_SESSION['user_username'] : 'Committee';
 $role = 'Committee'; 
@@ -29,7 +28,6 @@ if ($result_profile && $row = mysqli_fetch_assoc($result_profile)) {
     $stu_name = !empty($row['stu_name']) ? $row['stu_name'] : $username;
 }
 
-
 if (!empty($photo_path)) {
     if (strpos($photo_path, 'uploads/') === 0) {
         $img_src = "../" . htmlspecialchars($photo_path);
@@ -42,7 +40,6 @@ if (!empty($photo_path)) {
 
 // Define display configuration variables for student_background component template
 $display_name = $stu_name; 
-
 
 $username = '<img src="' . $img_src . '" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; display: inline-block; vertical-align: middle; margin-right: 12px; border: 2px solid #ffffff;">' . htmlspecialchars($stu_name);
 // ---------------------------------------------------------------------
@@ -57,7 +54,7 @@ $end_date     = isset($_POST['end_date']) ? mysqli_real_escape_string($link, $_P
 $events_list = mysqli_query($link, "SELECT eventID, event_title FROM events");
 $clubs_list  = mysqli_query($link, "SELECT clubID, club_name FROM club");
 
-// --- CORE ANALYTICS MATRIX QUERY (FIXED NO-CRASH VERSION) ---
+// --- CORE ANALYTICS MATRIX QUERY ---
 $query_string = "SELECT 
                     r.userID, 
                     s.stu_name AS stu_name, 
@@ -88,26 +85,25 @@ $present_count = 0;
 $absent_count = 0;
 $monthly_trends = ['Jan' => 0, 'Feb' => 0, 'Mar' => 0, 'Apr' => 0, 'May' => 0, 'Jun' => 0, 'Jul' => 0, 'Aug' => 0, 'Sep' => 0, 'Oct' => 0, 'Nov' => 0, 'Dec' => 0];
 
-$chart_query = mysqli_query($link, "
-    SELECT e.event_date, a.attendance_status 
-    FROM eventregistration r
-    JOIN events e ON r.eventID = e.eventID
-    LEFT JOIN attendance a ON r.eventID = a.eventID AND r.userID = a.userID
-");
+// Dynamic calculation based strictly on the filtered list results
+$chart_raw_results = mysqli_query($link, $query_string);
+if ($chart_raw_results) {
+    while ($c_row = mysqli_fetch_assoc($chart_raw_results)) {
+        // Safe check for event dates to chart months
+        $date_check_query = mysqli_query($link, "SELECT event_date FROM events WHERE event_title = '" . mysqli_real_escape_string($link, $c_row['event_title']) . "' LIMIT 1");
+        if ($date_check_query && $d_row = mysqli_fetch_assoc($date_check_query)) {
+            if (!empty($d_row['event_date'])) {
+                $month = date('M', strtotime($d_row['event_date']));
+                if (array_key_exists($month, $monthly_trends)) {
+                    $monthly_trends[$month]++;
+                }
+            }
+        }
 
-if ($chart_query) {
-    while ($c_row = mysqli_fetch_assoc($chart_query)) {
-        if (isset($c_row['attendance_status']) && $c_row['attendance_status'] == 'Present') {
+        if (isset($c_row['att_status']) && $c_row['att_status'] == 'Present') {
             $present_count++;
         } else {
             $absent_count++;
-        }
-        
-        if (!empty($c_row['event_date'])) {
-            $month = date('M', strtotime($c_row['event_date']));
-            if (array_key_exists($month, $monthly_trends)) {
-                $monthly_trends[$month]++;
-            }
         }
     }
 }

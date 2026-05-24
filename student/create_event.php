@@ -41,28 +41,46 @@ if (!$is_committee) {
     exit();
 }
 
+// --- NEW QUERY: FETCH ALL EXISTING CLUBS FOR THE DROPDOWN ---
+$clubs_list = [];
+$sql_clubs = "SELECT clubID, club_name FROM club ORDER BY clubID ASC";
+$result_clubs = mysqli_query($link, $sql_clubs);
+if ($result_clubs) {
+    while ($club_row = mysqli_fetch_assoc($result_clubs)) {
+        $clubs_list[] = $club_row;
+    }
+}
+
 // --- PRE-FILL CLUB ID IF AVAILABLE IN URL ---
 $url_clubID = isset($_GET['clubID']) ? htmlspecialchars($_GET['clubID']) : '';
 
 // --- ACTION PROCESSOR: INSERT NEW EVENT RECORD ---
 if (isset($_POST['submit_event'])) {
+    // 1. Get the clubID selected from your dropdown menu
     $clubID = mysqli_real_escape_string($link, $_POST['clubID']);
 
-    // 1. DATABASE VALIDATION: Verify if the clubID exists in the club table
+    // 2. DOUBLE-CHECK VALIDATION: Make sure it exists in the club table before proceeding
     $check_club_query = "SELECT * FROM club WHERE clubID = '$clubID' LIMIT 1";
     $check_club_res = mysqli_query($link, $check_club_query);
 
     if (mysqli_num_rows($check_club_res) == 0) {
-        $msg = "❌ Error: The Club ID '$clubID' does not exist in the system. Please verify and try again.";
+        $msg = "❌ Error: The selected Club ID does not exist in the database.";
         $msg_type = "error";
     } else {
-        // 2. Club verified! Generate a unique Event ID (e.g., E102, E103...) based on pattern
-        $res_count = mysqli_query($link, "SELECT COUNT(*) as total FROM events");
-        $row_count = mysqli_fetch_assoc($res_count);
-        $next_id_num = 101 + $row_count['total'];
-        $eventID = "E" . $next_id_num;
+        // 3. Generate a sequential unique Event ID (E101, E102...) automatically
+        $id_check_query = mysqli_query($link, "SELECT eventID FROM events ORDER BY eventID DESC LIMIT 1");
+        
+        if (mysqli_num_rows($id_check_query) > 0) {
+            $last_row = mysqli_fetch_assoc($id_check_query);
+            $lastID = $last_row['eventID'];
+            $number = (int)substr($lastID, 1);
+            $nextNumber = $number + 1;
+            $eventID = "E" . $nextNumber;
+        } else {
+            $eventID = "E101"; 
+        }
 
-        // 3. Sanitize and match your exact phpMyAdmin columns
+        // 4. Sanitize all form elements (Only keeping what matches your phpMyAdmin table)
         $event_title            = mysqli_real_escape_string($link, $_POST['event_title']);
         $event_desc             = mysqli_real_escape_string($link, $_POST['event_desc']);
         $event_date             = mysqli_real_escape_string($link, $_POST['event_date']);
@@ -70,12 +88,12 @@ if (isset($_POST['submit_event'])) {
         $event_venue            = mysqli_real_escape_string($link, $_POST['event_venue']);
         $event_max_participants = intval($_POST['event_max_participants']);
 
-        // 4. Formatted matching query using your exact database schema names
+        // 5. PERFECT MATCH INSERT: Strictly uses the 7 columns visible in your database screenshot
         $insert_query = "INSERT INTO events (eventID, event_title, event_desc, event_date, event_time, event_venue, event_max_participants) 
                          VALUES ('$eventID', '$event_title', '$event_desc', '$event_date', '$event_time', '$event_venue', $event_max_participants)";
 
         if (mysqli_query($link, $insert_query)) {
-            $show_success_toast = true; // Triggers the <<message>> box popup wireframe
+            $show_success_toast = true; 
         } else {
             $msg = "❌ Error Creating Event: " . mysqli_error($link);
             $msg_type = "error";
@@ -119,7 +137,6 @@ if (isset($_POST['submit_event'])) {
         .btn-cancel { background-color: #ef4444; color: white; }
         .btn-cancel:hover { background-color: #dc2626; }
 
-        /* Wireframe Component Box Layout: <<message>> */
         .wireframe-success-toast {
             position: fixed;
             bottom: 30px;
@@ -164,29 +181,25 @@ if (isset($_POST['submit_event'])) {
                 <form method="POST" action="" class="form-container">
                     
                     <div class="form-group">
-                        <label>Club ID Reference</label>
-                        <input type="text" name="clubID" class="form-control" placeholder="e.g. C101" value="<?php echo $url_clubID; ?>" required>
+                        <label>Hosting Club Assignment</label>
+                        <select name="clubID" class="form-control" required>
+                            <option value="" disabled <?php echo empty($url_clubID) ? 'selected' : ''; ?>>-- Choose an Existing Club --</option>
+                            <?php foreach ($clubs_list as $club): ?>
+                                <option value="<?php echo $club['clubID']; ?>" <?php echo ($url_clubID === $club['clubID']) ? 'selected' : ''; ?>>
+                                    <?php echo $club['clubID'] . " - " . $club['club_name']; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
 
                     <div class="form-group">
                         <label>Event Title</label>
-                        <input type="text" name="event_title" class="form-control" placeholder="e.g. Badminton Championship Cup 25/26" required>
+                        <input type="text" name="event_title" class="form-control" placeholder="e.g. Badminton Championship Cup" required>
                     </div>
 
                     <div class="form-group">
                         <label>Event Description</label>
                         <textarea name="event_desc" class="form-control" placeholder="Provide event description here..." required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Event Category</label>
-                        <select name="event_category" class="form-control" required>
-                            <option value="" disabled selected>-- Select Category Type --</option>
-                            <option value="Sports">Sports & Athletics</option>
-                            <option value="Academic">Academic / Seminar</option>
-                            <option value="Cultural">Cultural & Arts</option>
-                            <option value="Social">Social / Welfare</option>
-                        </select>
                     </div>
 
                     <div class="form-group">
@@ -234,7 +247,6 @@ if (isset($_POST['submit_event'])) {
         </div>
         
         <script>
-            // Automatically clears out the toast notification card window after 4 seconds
             setTimeout(function() {
                 var toast = document.getElementById('successToast');
                 if (toast) {
@@ -242,7 +254,7 @@ if (isset($_POST['submit_event'])) {
                     toast.style.opacity = "0";
                     setTimeout(function() { toast.remove(); }, 500);
                 }
-            }, 400);
+            }, 4000);
         </script>
     <?php endif; ?>
 
