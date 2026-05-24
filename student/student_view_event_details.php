@@ -1,0 +1,96 @@
+<?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+session_start();
+
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: ../login.php");
+    exit();
+}
+
+require_once '../db_connection.php';
+
+if (!isset($_GET['id'])) {
+    header("Location: browse_event.php");
+    exit();
+}
+
+$eventID = mysqli_real_escape_string($link, $_GET['id']);
+$userID = $_SESSION['userID'];
+
+// --- FETCH USER PROFILE DATA (Prevents Undefined Variable Errors) ---
+$username = isset($_SESSION['user_username']) ? $_SESSION['user_username'] : 'Student';
+$role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : 'Student';
+
+$sql_profile = "SELECT stu_name FROM students WHERE userID = '$userID'";
+$result_profile = mysqli_query($link, $sql_profile);
+$stu_name = $username; // Default fallback
+if ($result_profile && $row = mysqli_fetch_assoc($result_profile)) {
+    $stu_name = !empty($row['stu_name']) ? $row['stu_name'] : $username;
+}
+
+// --- HANDLING ACTIONS ---
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
+    $today = date('Y-m-d');
+    if ($_POST['action'] == 'register') {
+        $sql = "INSERT INTO eventregistration (userID, eventID, registration_date, registration_status) 
+                VALUES ('$userID', '$eventID', '$today', 'Confirmed')";
+        mysqli_query($link, $sql);
+    } elseif ($_POST['action'] == 'join_waiting') {
+        $sql = "INSERT INTO waiting_list (userID, eventID, waiting_date) 
+                VALUES ('$userID', '$eventID', '$today')";
+        mysqli_query($link, $sql);
+    }
+    header("Location: student_view_event_details.php?id=$eventID");
+    exit();
+}
+
+// --- FETCH EVENT DATA ---
+$event_result = mysqli_query($link, "SELECT * FROM events WHERE eventID = '$eventID'");
+$event = mysqli_fetch_assoc($event_result);
+
+$count_query = mysqli_query($link, "SELECT COUNT(*) as total FROM eventregistration WHERE eventID = '$eventID'");
+$total_registered = mysqli_fetch_assoc($count_query)['total'];
+$remaining_slots = (int)$event['event_max_participants'] - (int)$total_registered;
+
+$is_registered = mysqli_num_rows(mysqli_query($link, "SELECT * FROM eventregistration WHERE userID = '$userID' AND eventID = '$eventID'")) > 0;
+$is_waiting = mysqli_num_rows(mysqli_query($link, "SELECT * FROM waiting_list WHERE userID = '$userID' AND eventID = '$eventID'")) > 0;
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Event Details</title>
+    <style>
+        .details-wrapper { max-width: 700px; margin: 20px auto; padding: 30px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; }
+        .btn-action { padding: 10px 20px; color: white; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .msg-box { padding: 15px; margin-top: 20px; border-radius: 8px; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+    <?php include 'student_background.php'; ?>
+    
+    <div class="content-area">
+        <div class="details-wrapper">
+            <h2><?php echo htmlspecialchars($event['event_title']); ?></h2>
+            <p><?php echo nl2br(htmlspecialchars($event['event_desc'])); ?></p>
+            <p><strong>Date:</strong> <?php echo $event['event_date']; ?> | <strong>Time:</strong> <?php echo $event['event_time']; ?></p>
+            <p><strong>Remaining Slots:</strong> <?php echo max(0, $remaining_slots); ?></p>
+
+            <div class="btn-container">
+                <?php if ($is_registered): ?>
+                    <div class="msg-box" style="background:#d1fae5; color:#065f46;">✅ Registered Successfully</div>
+                <?php elseif ($is_waiting): ?>
+                    <div class="msg-box" style="background:#fef3c7; color:#92400e;">⏳ On Waiting List (Pending Admin Approval)</div>
+                <?php elseif ($remaining_slots > 0): ?>
+                    <form method="POST"><button type="submit" name="action" value="register" class="btn-action" style="background:#10b981;">Register Now</button></form>
+                <?php else: ?>
+                    <form method="POST"><button type="submit" name="action" value="join_waiting" class="btn-action" style="background:#ef4444;">Join Waiting List</button></form>
+                <?php endif; ?>
+                <br><br>
+                <a href="browse_event.php" class="btn-action" style="background:#475569;">Back</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

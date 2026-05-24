@@ -66,29 +66,6 @@ if (empty($clubID)) {
     }
 }
 
-// registration processing block
-if (isset($_POST['register_event'])) {
-    $eventID = mysqli_real_escape_string($link, $_POST['eventID']);
-    $today_date = date('Y-m-d');
-    
-    // prevent multiple registrations
-    $dup_check = mysqli_query($link, "SELECT * FROM eventregistration WHERE userID = '$userID' AND eventID = '$eventID'");
-    if (mysqli_num_rows($dup_check) > 0) {
-        $msg = "⚠️ You are already registered for this event.";
-        $msg_type = "error";
-    } else {
-        $insert_sql = "INSERT INTO eventregistration (userID, eventID, registration_date, registration_status) 
-                       VALUES ('$userID', '$eventID', '$today_date', 'Confirmed')";
-        if (mysqli_query($link, $insert_sql)) {
-            $msg = "🎉 Successfully registered for the event!";
-            $msg_type = "success";
-        } else {
-            $msg = "❌ Error processing registration entry.";
-            $msg_type = "error";
-        }
-    }
-}
-
 // delete event block (only allowed for committee users)
 if (isset($_GET['delete_id']) && $is_comm) {
     $del_id = mysqli_real_escape_string($link, $_GET['delete_id']);
@@ -145,7 +122,6 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
         .central-board { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .board-title { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
         
-        /* natural css names instead of strict numerical tracking */
         .dashboard-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .action-card { background: #f8fafc; border: 1px dashed #cbd5e1; padding: 15px; text-align: center; border-radius: 8px; text-decoration: none; color: #475569; font-size: 13px; font-weight: 600; transition: 0.2s; }
         .action-card:hover { background: #ecfdf5; border-color: #10b981; color: #065f46; }
@@ -155,8 +131,6 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
         td { padding: 14px 12px; font-size: 14px; color: #334155; border-bottom: 1px solid #f1f5f9; }
         
         .btn { padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; border: none; cursor: pointer; display: inline-block; }
-        .btn-register { background-color: #3b82f6; color: white; }
-        .btn-register:hover { background-color: #2563eb; }
         .btn-edit { background-color: #f59e0b; color: white; margin-right: 5px; }
         .btn-delete { background-color: #ef4444; color: white; }
         
@@ -260,42 +234,8 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
                     </div>
 
                     <div class="dashboard-actions">
-    <a href="browse_events.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">🔍 Browse Events</a>
-    <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">📌 My Registration</a>
-    <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">⏳ Event History</a>
-                    </div>
-
-                    <div id="browse">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Available Club Events</th>
-                                    <th>Venue Location</th>
-                                    <th>Scheduled Date</th>
-                                    <th>Action Controls</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if ($events_result && mysqli_num_rows($events_result) > 0): ?>
-                                    <?php mysqli_data_seek($events_result, 0); ?>
-                                    <?php while ($row = mysqli_fetch_assoc($events_result)): ?>
-                                        <tr>
-                                            <td><strong><?php echo htmlspecialchars($row['event_title']); ?></strong></td>
-                                            <td>📍 <?php echo htmlspecialchars($row['event_venue']); ?></td>
-                                            <td>📅 <?php echo date('d M Y', strtotime($row['event_date'])); ?></td>
-                                            <td>
-                                                <form method="POST" action="event_directory.php?clubID=<?php echo urlencode($clubID); ?>" style="display:inline;">
-                                                    <input type="hidden" name="eventID" value="<?php echo htmlspecialchars($row['eventID']); ?>">
-                                                    <button type="submit" name="register_event" class="btn btn-register">Register for Event</button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    <?php endwhile; ?>
-                                <?php else: ?>
-                                    <tr><td colspan="4" style="text-align:center; color:#94a3b8;">No open events available.</td></tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
+                        <a href="browse_event.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">🔍 Browse Events</a>
+<a href="student_my_participation.php" class="action-card">📌 My Registration</a>                        <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">⏳ Event History</a>
                     </div>
                 </div>
 
