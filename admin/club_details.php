@@ -1,34 +1,6 @@
 <?php
-session_start();
- 
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: login.php");
-    exit();
-}
- 
-require_once '../db_connection.php';
- 
-$userID   = $_SESSION['userID'];
-$role     = $_SESSION['user_role'];
-$username = $_SESSION['user_username'];
- 
-// ── Display name + photo ───────────────────────────────────────
-$display_name = $username;
-$photo_path   = "";
-if ($role == 'Student' || $role == 'Committee') {
-    $res = mysqli_query($link, "SELECT stu_name, stu_profile_photo FROM students WHERE userID='$userID'");
-    if ($res && $r = mysqli_fetch_assoc($res)) {
-        $display_name = $r['stu_name'] ?: $username;
-        $photo_path   = $r['stu_profile_photo'] ?: "";
-    }
-} else {
-    $res = mysqli_query($link, "SELECT admin_name, admin_photo FROM administrator WHERE userID='$userID'");
-    if ($res && $r = mysqli_fetch_assoc($res)) {
-        $display_name = $r['admin_name'] ?: $username;
-        $photo_path   = $r['admin_photo'] ?: "";
-    }
-}
- 
+require_once 'admin_login_materials.php';
+
 // ── Validate clubID ────────────────────────────────────────────
 if (!isset($_GET['clubID'])) {
     header("Location: club_directory.php");
@@ -79,9 +51,6 @@ $res = mysqli_query($link, "
 ");
 if ($res) while ($r = mysqli_fetch_assoc($res)) $events[] = $r;
  
-$is_admin   = ($role === 'Administrator');
-$admin_name = $display_name;
- 
 mysqli_close($link);
 ?>
 <!DOCTYPE html>
@@ -90,27 +59,6 @@ mysqli_close($link);
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars($club['club_name']); ?> - FK Management System</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
-        body { display: flex; flex-direction: column; height: 100vh; background-color: #f4f7f6; }
-
-        .top-bar { background: linear-gradient(135deg, <?php echo $is_admin ? '#0f172a 0%, #1e293b' : '#10b981 0%, #059669'; ?> 100%); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
-        .system-title { font-size: 22px; font-weight: bold; display: flex; align-items: center; gap: 12px; }
-        .system-logo { width: 36px; height: 36px; background-color: <?php echo $is_admin?'#10b981':'white'; ?>; color: <?php echo $is_admin?'white':'#10b981'; ?>; border-radius: 8px; display: flex; justify-content: center; align-items: center; }
-        .user-profile-section { display: flex; align-items: center; gap: 20px; }
-        .profile-group { display: flex; align-items: center; gap: 12px; }
-        .top-bar-photo { width: 40px; height: 40px; background-color: rgba(255,255,255,0.2); border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; overflow: hidden; font-size: 14px; font-weight: bold; }
-        .welcome-text { font-size: 15px; font-weight: bold; }
-        .role-badge { background-color: rgba(255,255,255,0.2); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; }
-
-        .main-layout { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 250px; background: white; border-right: 1px solid #e2e8f0; padding-top: 20px; display: flex; flex-direction: column; flex-shrink: 0; }
-        .sidebar-title { padding: 0 20px 10px 20px; font-size: 12px; text-transform: uppercase; color: #718096; font-weight: bold; letter-spacing: 1px; }
-        .sidebar a { padding: 15px 20px; color: #4a5568; text-decoration: none; font-weight: bold; font-size: 14px; border-left: 4px solid transparent; transition: all 0.3s; display: block; }
-        .sidebar a:hover { background-color: #f8fafc; }
-        .sidebar a.active { background-color: #f1f5f9; border-left: 4px solid #10b981; color: #10b981; }
-        .logout-btn { margin-top: auto; border-top: 1px solid #e2e8f0; color: #ef4444 !important; }
-
-        .content-area { flex: 1; padding: 40px; overflow-y: auto; }
 
         .back-link { color: #10b981; text-decoration: none; font-size: 14px; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 20px; }
 
@@ -143,62 +91,7 @@ mysqli_close($link);
     </style>
 </head>
 <body>
-
-<div class="top-bar">
-    <div class="system-title">
-        <div class="system-logo">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-        </div>
-        FK Student Club & Event Management
-    </div>
-    <div class="user-profile-section">
-        <div class="profile-group">
-            <div class="top-bar-photo">
-    <?php 
-    // Check if path exists and prepending ../ if the photo is stored in a root directory
-    if (!empty($photo_path)): 
-        // If the path doesn't already start with http or ../, add ../
-        $final_path = (strpos($photo_path, 'http') === 0) ? $photo_path : '../' . $photo_path;//one dir up 
-    ?>
-        <img src="<?php echo htmlspecialchars($final_path); ?>" 
-             style="width:100%;height:100%;object-fit:cover;" 
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <span style="display:none;"><?php echo strtoupper(substr($display_name, 0, 1)); ?></span>
-    <?php else: ?>
-        <?php echo strtoupper(substr($display_name, 0, 1)); ?>
-    <?php endif; ?>
-</div>
-            <div class="welcome-text">Welcome, <?php echo htmlspecialchars($display_name); ?></div>
-        </div>
-        <div class="role-badge"><?php echo htmlspecialchars($role); ?></div>
-    </div>
-</div>
-
-<div class="main-layout">
-    <div class="sidebar">
-        <?php if ($is_admin): ?>
-            <div class="sidebar-title">Admin Controls</div>
-            <a href="administrator_dashboard.php">Dashboard Overview</a>
-            <a href="admin_profile.php">My Profile</a>
-            <a href="manage_users.php">Manage Users</a>
-            <a href="manage_clubs.php">Manage Clubs</a>
-            <a href="manage_committees.php">Manage Committees</a>
-            <a href="club_dashboard.php">Club Dashboard</a>
-            <a href="club_directory.php" class="active">Club Directory</a>
-            <a href="manage_events.php">Manage Events</a>
-            <a href="system_reports.php">Reports & Analytics</a>
-        <?php else: ?>
-            <div class="sidebar-title">Main Menu</div>
-            <a href="dashboard.php">Dashboard</a>
-            <a href="student_dashboard.php">My Profile</a>
-            <a href="committee_details.php">My Committee Details</a>
-            <a href="club_directory.php" class="active">Club Directory</a>
-            <a href="event_directory.php">Event Directory</a>
-            <a href="participation.php">My Participation</a>
-        <?php endif; ?>
-        <a href="logout.php" class="logout-btn">LogOut</a>
-    </div>
-
+    <?php include 'administrator_background.php'; ?>
     <div class="content-area">
 
         <a href="club_directory.php" class="back-link">← Back to Club Directory</a>

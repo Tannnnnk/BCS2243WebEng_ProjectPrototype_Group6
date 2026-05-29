@@ -1,35 +1,5 @@
 <?php
-session_start();
-
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true || $_SESSION['user_role'] !== 'Administrator') {
-    header("Location: login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
-
-$userID = $_SESSION['userID'];
-$username = $_SESSION['user_username'];
-$role = $_SESSION['user_role'];
-
-$admin_name = $username; 
-$department = "";
-$position = "";
-$photo_path = "";
-
-try {
-    $sql_profile = "SELECT admin_name, admin_department, admin_position, admin_photo FROM administrator WHERE userID = '$userID'";
-    $result_profile = mysqli_query($link, $sql_profile);
-    
-    if ($result_profile && mysqli_num_rows($result_profile) > 0) {
-        $row = mysqli_fetch_assoc($result_profile);
-        
-        $admin_name = !empty($row['admin_name']) ? $row['admin_name'] : $username;
-        $department = !empty($row['admin_department']) ? $row['admin_department'] : "";
-        $position = !empty($row['admin_position']) ? $row['admin_position'] : "";
-        $photo_path = !empty($row['admin_photo']) ? $row['admin_photo'] : "";
-    }
-} catch (Exception $e) {}
+require_once 'admin_login_materials.php';
 
 mysqli_close($link);
 ?>
@@ -80,7 +50,7 @@ mysqli_close($link);
                 <div class="profile-header">
                     <div class="profile-photo">
                         <?php if (!empty($photo_path)): ?>
-                            <img src="../<?php echo htmlspecialchars($photo_path); ?>" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="<?php echo htmlspecialchars($photo_path); ?>" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover;">
                         <?php else: ?>
                             <?php echo strtoupper(substr($admin_name, 0, 1)); ?>
                         <?php endif; ?>

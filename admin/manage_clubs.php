@@ -1,26 +1,8 @@
 <?php
-session_start();
+require_once 'admin_login_materials.php';
 
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true || $_SESSION['user_role'] !== 'Administrator') {
-    header("Location: login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
-
-$userID   = $_SESSION['userID'];
-$username = $_SESSION['user_username'];
 $msg      = "";
 $msg_type = "";
-
-// ── Admin profile ──────────────────────────────────────────────
-$admin_name = $username;
-$photo_path = "";
-$r = mysqli_query($link, "SELECT admin_name, admin_photo FROM administrator WHERE userID='$userID'");
-if ($r && $row = mysqli_fetch_assoc($r)) {
-    $admin_name = $row['admin_name'] ?: $username;
-    $photo_path = $row['admin_photo'] ?: "";
-}
 
 // ── Logo upload helper ─────────────────────────────────────────
 function handleUpload() {
@@ -205,7 +187,7 @@ mysqli_close($link);
 
         <div class="header-section">
             <h2>Manage Clubs</h2>
-            <button class="btn btn-primary" onclick="toggleForm('addClubForm')">+ Add New Club</button>
+            <a href="create_club.php" class="btn btn-primary">+ Add New Club</a>
         </div>
 
         <!-- ══ ADD FORM ══ -->

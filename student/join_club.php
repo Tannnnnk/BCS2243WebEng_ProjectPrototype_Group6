@@ -23,21 +23,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['clubID'])) {
     ");
 
     if (mysqli_num_rows($check) == 0) {
+        // 1. FIXED: Changed 'MEM%' to 'M%' to match your actual ID format
+        $max_query = mysqli_query($link, "
+            SELECT memberID 
+            FROM membership 
+            WHERE memberID LIKE 'M%' 
+            ORDER BY memberID DESC 
+            LIMIT 1
+        ");
 
-        // Generate unique member ID
-        do {
-            $memberID = "MEM" . rand(1000, 9999);
+        // Default baseline integer if the table has no records yet
+        $next_number = 1; 
 
-            $exists = mysqli_query($link, "
-                SELECT memberID 
-                FROM membership
-                WHERE memberID='$memberID'
-            ");
+        if ($max_query && mysqli_num_rows($max_query) > 0) {
+            $max_row = mysqli_fetch_assoc($max_query);
+        
+            // Extract just the numbers out of the string (e.g., "M001" becomes 1)
+            $last_number = (int) preg_replace('/[^0-9]/', '', $max_row['memberID']);
+        
+            // Increment the raw number value by 1
+            $next_number = $last_number + 1;
+        }
 
-        } while (mysqli_num_rows($exists) > 0);
+        // 2. FIXED: Re-combine using str_pad to force a clean 3-digit format (e.g., M002)
+        $memberID = "M" . str_pad($next_number, 3, "0", STR_PAD_LEFT);
 
-        // Insert as normal member (Club Members = R08)
-      // Insert as normal member with 1-year end date
+        // 3. Insert as normal member with 1-year end date
         $insert = mysqli_query($link, "
             INSERT INTO membership (memberID, userID, clubID, roleID, start_date, end_date)
             VALUES ('$memberID', '$userID', '$clubID', 'R08', CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR))

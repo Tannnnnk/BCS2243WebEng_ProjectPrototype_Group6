@@ -4,50 +4,16 @@ require_once 'db_connection.php';
 $popup_type = ""; 
 $popup_message = "";
 
+if (isset($_GET['eventID'])) {
+    $eventID = $_GET['eventID'];
+}
+
 date_default_timezone_set('Asia/Kuala_Lumpur');
 $current_date_today = date('Y-m-d');
 $current_time_now = date('H:i:s');
 
-$check_events_query = "SELECT eventID, event_date, event_time FROM events 
-                       WHERE event_date < '$current_date_today' 
-                       OR (event_date = '$current_date_today' AND ADDTIME(event_time, '02:00:00') <= '$current_time_now')";
+$check_events_query = "SELECT event_date, event_time FROM events WHERE event_date = '$current_date_today' AND eventID = '$eventID'";
 $events_res = mysqli_query($link, $check_events_query);
-
-if ($events_res) {
-    while ($ev = mysqli_fetch_assoc($events_res)) {
-        $past_event_id = $ev['eventID'];
-        $past_event_date = $ev['event_date'];
-        $past_event_time = $ev['event_time'];
-
-        $absent_students_query = "SELECT er.userID FROM eventregistration er 
-                                  WHERE er.eventID = '$past_event_id' 
-                                  AND NOT EXISTS (
-                                      SELECT 1 FROM attendance a 
-                                      WHERE a.userID = er.userID AND a.eventID = er.eventID
-                                  )";
-        $absent_res = mysqli_query($link, $absent_students_query);
-
-        if ($absent_res) {
-            while ($absent_student = mysqli_fetch_assoc($absent_res)) {
-                $absent_user_id = $absent_student['userID'];
-
-                $id_query = "SELECT attendanceID FROM attendance ORDER BY CAST(SUBSTRING(attendanceID, 2) AS UNSIGNED) DESC LIMIT 1";
-                $id_res = mysqli_query($link, $id_query);
-                
-                if ($id_res && mysqli_num_rows($id_res) > 0) {
-                    $last_row = mysqli_fetch_assoc($id_res);
-                    $next_attendance_id = "A" . ((int)substr($last_row['attendanceID'], 1) + 1);
-                } else {
-                    $next_attendance_id = "A101";
-                }
-
-                $insert_absent = "INSERT INTO attendance (attendanceID, attendance_date, attendance_time, attendance_status, eventID, userID) 
-                                  VALUES ('$next_attendance_id', '$past_event_date', '$past_event_time', 'Absent', '$past_event_id', '$absent_user_id')";
-                mysqli_query($link, $insert_absent);
-            }
-        }
-    }
-}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $submitted_data = $_POST['student_data'] ?? ''; 
@@ -67,7 +33,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $popup_message = "<b>$stu_ID</b> has already submitted attendance!<br>Current Status: <b>".$existing_record['attendance_status']."</b>.";
         } else {
             if (strtolower($role) == 'volunteer') {
-                $attendance_status = "Volunteer";
+                if (strtotime($attendance_time) > strtotime($event_start_time)) {
+                    $attendance_status = "Late Volunteer";
+                } else {
+                    $attendance_status = "Present Volunteer";
+                }
             } else {
                 if (strtotime($attendance_time) > strtotime($event_start_time)) {
                     $attendance_status = "Late";
@@ -90,8 +60,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                              VALUES ('$attendanceID', '$attendance_date', '$attendance_time', '$attendance_status', '$eventID', '$userID')";
             
             if (mysqli_query($link, $insert_query)) {
+                $point_value = 0;
+                $stu_enforce = "";
+
+                $point_rules = [
+                    'Volunteer' => [
+                        'Present Volunteer'    => ['points' => 15,  'desc' => 'Present on time'],
+                        'Late Volunteer'       => ['points' => 10,  'desc' => 'Late arrival']
+                    ],
+                    'Attendee' => [
+                        'Present'    => ['points' => 10,  'desc' => 'Present on time'],
+                        'Late'       => ['points' => 5,   'desc' => 'Late arrival']
+                    ]
+                ];
+
+                $safe_role = ($role === 'Volunteer') ? 'Volunteer' : 'Attendee';
+
+                $point_value = $point_rules[$safe_role][$attendance_status]['points'] ?? 0;
+                $stu_enforce = $point_rules[$safe_role][$attendance_status]['desc'] ?? 'Unknown status';
+
+                if ($point_value > 0) {
+                    $p_id_query = "SELECT pointID FROM points ORDER BY CAST(SUBSTRING(pointID, 2) AS UNSIGNED) DESC LIMIT 1";
+                    $p_id_res = mysqli_query($link, $p_id_query);
+    
+                    if ($p_id_res && mysqli_num_rows($p_id_res) > 0) {
+                        $p_row = mysqli_fetch_assoc($p_id_res);
+                        $pointID = "P" . ((int)substr($p_row['pointID'], 1) + 1);
+                    } else {
+                        $pointID = "P101"; 
+                    }
+                    
+                    $insert_points_query = "INSERT INTO points (pointID, stu_enforce, point_value, attendanceID, userID) 
+                                            VALUES ('$pointID', '$stu_enforce', '$point_value', '$attendanceID', '$userID')";
+                    mysqli_query($link, $insert_points_query);
+                }
+
                 $popup_type = "success";
-                $popup_message = "Success! <b>$stu_ID</b> recorded as <b>$attendance_status</b>.";
+                $popup_message = "Success! <b>$stu_ID</b> recorded as <b>$attendance_status</b>.<br>Earned: <b>+$point_value Points</b>!";
             } else {
                 $popup_type = "error";
                 $popup_message = "Database Error: " . mysqli_error($link);
@@ -115,12 +120,12 @@ $student_name =
         ELSE 'Attendee'
     END AS role
 FROM students s
-JOIN events e ON 1=1
+JOIN events e ON e.eventID = '$eventID'
 WHERE 
     (
-        EXISTS (SELECT 1 FROM eventregistration er WHERE er.userID = s.userID AND er.eventID = e.eventID)
+        EXISTS (SELECT 1 FROM eventregistration er WHERE er.userID = s.userID AND er.eventID = '$eventID')
         OR 
-        EXISTS (SELECT 1 FROM committee c JOIN membership m ON c.memberID = m.memberID WHERE m.userID = s.userID AND c.eventID = e.eventID)
+        EXISTS (SELECT 1 FROM committee c JOIN membership m ON c.memberID = m.memberID WHERE m.userID = s.userID AND c.eventID = '$eventID')
     )
 ORDER BY s.stu_name ASC";
 
@@ -163,7 +168,7 @@ if ($result) {
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
         body { display: flex;; height: 100vh; background-color: #f4f7f6; color: #333; justify-content: center; padding: 20px;}
         .page-container { width: 100%; max-width: 800px; border: 2px solid #059669; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.1); }
-        .form-title { margin-bottom: 40px; padding: 15px 30px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border-radius: 4px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .form-title { margin-left: auto; margin-right: auto; margin-bottom: 40px; padding: 15px 30px; width: 400px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border-radius: 4px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; row-gap: 30px; align-items: center; }
         .form-label { text-align: center; font-size: 16px; color: #333; font-weight: 500; }
         .form-input { text-align: center; }
@@ -208,7 +213,7 @@ if ($result) {
     </div>
 
     <div class="page-container">
-        <form method="POST" action="">
+        <form method="POST" action=""><br>
             <div class="form-title">Attendance Form</div>
 
             <div class="form-grid">

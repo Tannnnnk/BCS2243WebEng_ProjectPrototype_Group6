@@ -1,28 +1,5 @@
 <?php
-session_start();
-
-// 1. Security Check: Only allow logged-in Students or Committee members
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true || $_SESSION['user_role'] === 'Administrator') {
-    header("Location: ../login.php");
-    exit();
-}
-
-require_once '../db_connection.php'; // Looks one folder up for DB connection
-
-$userID   = $_SESSION['userID'];
-$role     = $_SESSION['user_role'];
-$username = $_SESSION['user_username'];
-
-// Get display name and photo based on actual DB columns
-$display_name = $username;
-$stu_name = $username;
-$photo_path   = "";
-
-$res = mysqli_query($link, "SELECT stu_name, stu_profile_photo FROM students WHERE userID='$userID'");
-if ($res && $r = mysqli_fetch_assoc($res)) {
-    $display_name = $r['stu_name'] ?: $username;
-    $photo_path   = $r['stu_profile_photo'] ?: "";
-}
+require_once 'student_login_materials.php';
 
 // Search Logic (Students only see 'Active' clubs)
 $search = isset($_GET['search']) ? mysqli_real_escape_string($link, trim($_GET['search'])) : "";
@@ -119,11 +96,11 @@ while ($r = mysqli_fetch_assoc($res_joined)) { $joined_clubs[] = $r['clubID']; }
                             <?php if (in_array($club['clubID'], $joined_clubs)): ?>
                                 <span style="color: #059669; font-weight: bold; font-size: 13px;">✓ Joined</span>
                             <?php else: ?>
-                              <form method="POST" action="join_club.php"
-      onsubmit="return confirm('Are you sure you want to join this club?');">
-    <input type="hidden" name="clubID" value="<?php echo $club['clubID']; ?>">
-    <button type="submit" class="btn btn-join">Join Club</button>
-</form>
+                                <form method="POST" action="join_club.php"
+                                    onsubmit="return confirm('Are you sure you want to join this club?');">
+                                    <input type="hidden" name="clubID" value="<?php echo $club['clubID']; ?>">
+                                    <button type="submit" class="btn btn-join">Join Club</button>
+                                </form>
                             <?php endif; ?>
                         </div>
                     </div>

@@ -1,25 +1,9 @@
 <?php
-session_start();
-if (!isset($_SESSION['logged_in']) || $_SESSION['user_role'] !== 'Administrator') {
-    header("Location: ../login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
+require_once 'admin_login_materials.php';
 
 if (!isset($_GET['clubID'])) { header("Location: manage_committees.php"); exit(); }
 $target_clubID = mysqli_real_escape_string($link, $_GET['clubID']);
 
-$userID = $_SESSION['userID'];
-$username = $_SESSION['user_username'];
-
-// Fetch Admin Profile for background
-$res_admin = mysqli_query($link, "SELECT admin_name, admin_photo FROM administrator WHERE userID = '$userID'");
-$admin_row = mysqli_fetch_assoc($res_admin);
-$admin_name = !empty($admin_row['admin_name']) ? $admin_row['admin_name'] : $username;
-$photo_path = !empty($admin_row['admin_photo']) ? $admin_row['admin_photo'] : "";
-
-// Handle Logic for Add / Remove / Delete
 $msg = "";
 $msg_type = "error"; 
 

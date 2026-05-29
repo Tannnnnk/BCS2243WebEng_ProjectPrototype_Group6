@@ -18,7 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $photo_path_for_db = ""; 
 
     if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] == UPLOAD_ERR_OK) {
-        $target_dir = "uploads/";
+        $target_dir = "../uploads/";
         
         if (!is_dir($target_dir)) {
             mkdir($target_dir, 0777, true);

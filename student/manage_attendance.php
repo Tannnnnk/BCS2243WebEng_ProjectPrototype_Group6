@@ -2,15 +2,7 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-
-session_start();
-
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: ../login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
+require_once 'student_login_materials.php';
 
 // Get the eventID passed from the main dashboard workspace
 $eventID = isset($_GET['eventID']) ? mysqli_real_escape_string($link, $_GET['eventID']) : '';
@@ -18,22 +10,6 @@ $eventID = isset($_GET['eventID']) ? mysqli_real_escape_string($link, $_GET['eve
 if (empty($eventID)) {
     echo "<script>alert('Please select an event from the workspace first.'); window.location.href='manage_events.php';</script>";
     exit();
-}
-
-$userID = $_SESSION['userID'];
-$username = isset($_SESSION['user_username']) ? $_SESSION['user_username'] : 'Student';
-$role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : 'Student';
-
-// --- DB QUERY: FETCH CURRENT STUDENT INFORMATION & PROFILE PICTURE ---
-$photo_path = "";
-$stu_name = $username; 
-
-$sql_profile = "SELECT stu_name, stu_profile_photo FROM students WHERE userID = '$userID'";
-$result_profile = mysqli_query($link, $sql_profile);
-
-if ($result_profile && $row = mysqli_fetch_assoc($result_profile)) {
-    $photo_path = !empty($row['stu_profile_photo']) ? $row['stu_profile_photo'] : "";
-    $stu_name = !empty($row['stu_name']) ? $row['stu_name'] : $username;
 }
 
 $target_file = __DIR__ . '/../uploads/' . $photo_path;
@@ -129,6 +105,7 @@ $total_participants = $result_participants ? mysqli_num_rows($result_participant
         .badge { font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 10px; text-transform: uppercase; }
         .badge-approved { background-color: #d1fae5; color: #065f46; }
         .badge-pending { background-color: #fef3c7; color: #d97706; }
+        .badge-warning { background-color: #fef9c3; color: #b45309; }
         .badge-neutral { background-color: #e2e2e4; color: #475569; }
 
         .action-row-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid #f1f5f9; padding-top: 20px; }
@@ -172,8 +149,8 @@ $total_participants = $result_participants ? mysqli_num_rows($result_participant
                     <thead>
                         <tr>
                             <th width="50px"><input type="checkbox" id="select_all_trigger" class="chk-box" onclick="toggleSelectAll(this)"></th>
-                            <th>StudentID</th>
-                            <th>StudentName</th>
+                            <th>Student ID</th>
+                            <th>Student Name</th>
                             <th>Attendance Time</th>
                             <th>Status</th>
                         </tr>
@@ -188,11 +165,13 @@ $total_participants = $result_participants ? mysqli_num_rows($result_participant
                                     <td><code><?php echo htmlspecialchars($row['userID']); ?></code></td>
                                     <td><strong><?php echo htmlspecialchars($row['student_real_name']); ?></strong></td>
                                     <td>
-                                        🕒 <?php echo (!empty($row['attendance_time']) && $row['att_status'] === 'Present') ? date('h:i A (d M)', strtotime($row['attendance_time'])) : '<span style="color: #94a3b8; font-style: italic;">Not Logged</span>'; ?>
+                                        🕒 <?php echo (!empty($row['attendance_time']) && ($row['att_status'] === 'Present' || $row['att_status'] === 'Late')) ? date('h:i A (d M)', strtotime($row['attendance_time'])) : '<span style="color: #94a3b8; font-style: italic;">Not Logged</span>'; ?>
                                     </td>
                                     <td>
                                         <?php if (strtolower($row['att_status']) == 'present'): ?>
                                             <span class="badge badge-approved">Present</span>
+                                        <?php elseif (strtolower($row['att_status']) == 'late'): ?>
+                                            <span class="badge badge-warning">Late</span>
                                         <?php else: ?>
                                             <span class="badge badge-neutral">Not Checked</span>
                                         <?php endif; ?>

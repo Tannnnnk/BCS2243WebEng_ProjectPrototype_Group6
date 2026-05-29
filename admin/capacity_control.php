@@ -1,22 +1,9 @@
 <?php
-session_start();
-
-// Redirect to login if not an Administrator
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true || $_SESSION['user_role'] !== 'Administrator') {
-    header("Location: ../login.php");
-    exit();
-}
-
-// Adjusted path to look one level up into the root folder
-require_once '../db_connection.php';
-
-$userID = $_SESSION['userID'];
-$username = $_SESSION['user_username'];
-$role = $_SESSION['user_role'];
+require_once 'admin_login_materials.php';
 
 // Get Event ID from URL query string
 if (!isset($_GET['eventID']) || empty($_GET['eventID'])) {
-    header("Location: manage_events.php");
+    header("Location: event_directory.php");
     exit();
 }
 
@@ -78,7 +65,7 @@ if ($evt_res && $evt_row = mysqli_fetch_assoc($evt_res)) {
 
 // 2. Compute Active Registrations (Status: 'Present')
 $active_count = 0;
-$active_res = mysqli_query($link, "SELECT COUNT(*) as total FROM attendance WHERE eventID = '$eventID' AND attendance_status = 'Present'");
+$active_res = mysqli_query($link, "SELECT COUNT(*) as total FROM attendance WHERE eventID = '$eventID' AND attendance_status IN ('Present', 'Late')");
 if ($active_res && $act_row = mysqli_fetch_assoc($active_res)) {
     $active_count = (int)$act_row['total'];
 }
@@ -187,7 +174,7 @@ mysqli_close($link);
                     <h2>Capacity Control</h2>
                     <p>Monitoring Allocation and Waiting Lists for: <strong><?php echo htmlspecialchars($eventID); ?> - <?php echo htmlspecialchars($event_title); ?></strong></p>
                 </div>
-                <a href="manage_events.php" class="btn" style="background-color: #e2e8f0; color: #4a5568;">&larr; Back to Events</a>
+                <a href="event_directory.php" class="btn" style="background-color: #e2e8f0; color: #4a5568;">&larr; Back to Events</a>
             </div>
         </div>
 

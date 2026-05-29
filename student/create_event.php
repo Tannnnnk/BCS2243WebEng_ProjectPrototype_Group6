@@ -3,36 +3,14 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-session_start();
-
-// Guard Check: Secure context to authenticate logged-in users
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: ../login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
-
-$userID = $_SESSION['userID'];
-$username = isset($_SESSION['user_username']) ? $_SESSION['user_username'] : 'Student';
-$role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : 'Student'; 
-
-// --- DB QUERY: FETCH CURRENT STUDENT INFORMATION ---
-$photo_path = "";
-$stu_name = $username; 
-$sql_profile = "SELECT stu_name, stu_profile_photo FROM students WHERE userID = '$userID'";
-$result_profile = mysqli_query($link, $sql_profile);
-if ($result_profile && $row = mysqli_fetch_assoc($result_profile)) {
-    $photo_path = !empty($row['stu_profile_photo']) ? $row['stu_profile_photo'] : "";
-    $stu_name = !empty($row['stu_name']) ? $row['stu_name'] : $username;
-}
+require_once 'student_login_materials.php';
 
 $show_success_toast = false; 
 $msg = "";
 $msg_type = "";
 
 // --- PRIVILEGE GUARD: Verify Committee Status (roleID < 'R08') ---
-$check_committee = "SELECT m.* FROM membership m WHERE m.userID = '$userID' AND m.roleID < 'R08' LIMIT 1";
+$check_committee = "SELECT m.* FROM membership m WHERE m.userID = '$userID' AND m.roleID <= 'R08' LIMIT 1";
 $res_committee = mysqli_query($link, $check_committee);
 $is_committee = (mysqli_num_rows($res_committee) > 0);
 
@@ -88,15 +66,84 @@ if (isset($_POST['submit_event'])) {
         $event_venue            = mysqli_real_escape_string($link, $_POST['event_venue']);
         $event_max_participants = intval($_POST['event_max_participants']);
 
-        // 5. PERFECT MATCH INSERT: Strictly uses the 7 columns visible in your database screenshot
-        $insert_query = "INSERT INTO events (eventID, event_title, event_desc, event_date, event_time, event_venue, event_max_participants) 
-                         VALUES ('$eventID', '$event_title', '$event_desc', '$event_date', '$event_time', '$event_venue', $event_max_participants)";
+        $check = mysqli_query($link, "SELECT * FROM events WHERE eventID = '$eventID'");
+        if (mysqli_num_rows($check) > 0) {
+            $msg = "Error: Event ID already exists!";
+            $msg_type = "error";
+        } else {
+            // ==========================================
+            // AUTOMATIC QR CODE GENERATION
+            // ==========================================
+            require_once '../phpqrcode/qrlib.php'; // Load the library
+            
+            // 1. Ensure the qrcodes folder exists
+            $storage_folder = "qrcodes/";
+            if (!is_dir($storage_folder)) {
+                mkdir($storage_folder, 0777, true);
+            }
+            
+            // 2. Define File Name and Path
+            $file_name = $eventID . "_qr.png";
+            $attendance_qr = $storage_folder . $file_name;
+            
+            // 3. Define the Data inside the QR Code (The link to your attendance form)
+            // Note: Change 'localhost' to your real domain name when you host this online
+            $qr_data = "http://localhost/BCS2243WebEng_ProjectPrototype_Group6/attendance_form.php?eventID=" . $eventID;
+            
+            // 4. Generate and save the QR Code image
+            QRcode::png($qr_data, $attendance_qr, QR_ECLEVEL_L, 10, 2);
+            // ==========================================
 
-        if (mysqli_query($link, $insert_query)) {
+        // 5. PERFECT MATCH INSERT: Strictly uses the 7 columns visible in your database screenshot
+        $sql_insert = "INSERT INTO events (eventID, event_title, event_desc, event_date, event_time, event_venue, event_max_participants, attendance_qr) 
+                       VALUES ('$eventID', '$event_title', '$event_desc', '$event_date', '$event_time', '$event_venue', $event_max_participants, '$attendance_qr')";
+            
+        if (mysqli_query($link, $sql_insert)) {
+            $get_member = mysqli_query($link, "
+        SELECT memberID 
+        FROM membership 
+        WHERE userID = '$userID' AND clubID = '$clubID' 
+        LIMIT 1
+    ");
+
+    if ($get_member && mysqli_num_rows($get_member) > 0) {
+        $member_row = mysqli_fetch_assoc($get_member);
+        $memberID = $member_row['memberID'];
+
+        // --- NEW: AUTO-INCREMENT COMMITTEE ID ---
+        // Fetch the highest numeric committeeID currently in the database
+        $max_comm_query = mysqli_query($link, "
+            SELECT committeeID 
+            FROM committee 
+            WHERE committeeID LIKE 'COM%' 
+            ORDER BY committeeID DESC 
+            LIMIT 1
+        ");
+
+        $next_comm_number = 1; // Default fallback if table is empty
+
+        if ($max_comm_query && mysqli_num_rows($max_comm_query) > 0) {
+            $max_comm_row = mysqli_fetch_assoc($max_comm_query);
+            // Extract just the numbers (e.g., "COM014" becomes 14)
+            $last_comm_number = (int) preg_replace('/[^0-9]/', '', $max_comm_row['committeeID']);
+            $next_comm_number = $last_comm_number + 1;
+        }
+
+        // Combine back into your sequential string format padded to 3 digits (e.g., COM015)
+        $committeeID = "COM" . str_pad($next_comm_number, 3, "0", STR_PAD_LEFT);
+        // ----------------------------------------
+
+        // 2. Insert into the committee table using the freshly generated committeeID
+        $sql_committee = "INSERT INTO committee (committeeID, memberID, eventID) 
+                          VALUES ('$committeeID', '$memberID', '$eventID')";
+        
+        mysqli_query($link, $sql_committee);
+    }
             $show_success_toast = true; 
         } else {
             $msg = "❌ Error Creating Event: " . mysqli_error($link);
             $msg_type = "error";
+        }
         }
     }
 }
@@ -255,7 +302,6 @@ if (isset($_POST['submit_event'])) {
                     setTimeout(function() { toast.remove(); }, 500);
                 }
             }, 4000);
-        </script>
     <?php endif; ?>
 
 </body>

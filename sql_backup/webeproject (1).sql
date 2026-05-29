@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 18, 2026 at 05:22 AM
+-- Generation Time: May 28, 2026 at 04:56 PM
 -- Server version: 8.0.41
 -- PHP Version: 8.2.30
 
@@ -40,8 +40,11 @@ CREATE TABLE `administrator` (
 --
 
 INSERT INTO `administrator` (`userID`, `admin_name`, `admin_department`, `admin_position`, `admin_photo`) VALUES
-('U201', 'Dr. Chua Teck Kunt', 'Human Resources', 'HR Manager', 'uploads/U201_admin.png'),
-('U301', 'Dr. Peter', NULL, NULL, NULL);
+('U001', 'Prof. Chua Teck Kunt', 'Dean Office', 'Dean', '../uploads/U001_admin.png'),
+('U002', 'Ts. Dr. Tan Wei Ming', 'Software Engineering Dept', 'Academic Advisor', ''),
+('U003', 'Ts. Dr. Haris', 'Student Affairs Division', 'Club Coordinator', ''),
+('U004', 'Encik Puraveen', 'Faculty of Computing IT Services Central', 'Database Administrator', ''),
+('U005', 'Encik Lee Jun Xian', 'Faculty of Computing', 'Administrative Officer', '');
 
 -- --------------------------------------------------------
 
@@ -63,8 +66,15 @@ CREATE TABLE `attendance` (
 --
 
 INSERT INTO `attendance` (`attendanceID`, `attendance_date`, `attendance_time`, `attendance_status`, `eventID`, `userID`) VALUES
-('A101', '2026-05-17', '13:03:38', 'Absent', 'E101', 'U101'),
-('A102', '2026-05-17', '13:03:48', 'Volunteer', 'E101', 'U102');
+('A101', '2026-05-28', '01:36:59', 'Present', 'E101', 'U006'),
+('A102', '2026-05-28', '01:37:06', 'Present Volunteer', 'E101', 'U009'),
+('A103', '2026-05-28', '01:37:23', 'Absent', 'E101', 'U007'),
+('A104', '2026-05-28', '01:37:23', 'Late', 'E101', 'U008'),
+('A105', '2026-05-29', '00:36:21', 'Present Volunteer', 'E102', 'U006'),
+('A106', '2026-05-29', '00:36:26', 'Present', 'E102', 'U010'),
+('A107', '2026-05-29', '00:36:36', 'Present', 'E102', 'U009'),
+('A108', '2026-05-29', '00:37:54', 'Present', 'E102', 'U008'),
+('A109', '2026-05-29', '00:40:28', 'Absent', 'E102', 'U007');
 
 -- --------------------------------------------------------
 
@@ -86,7 +96,11 @@ CREATE TABLE `club` (
 --
 
 INSERT INTO `club` (`clubID`, `club_name`, `club_desc`, `userID`, `club_operational_status`, `club_photo`) VALUES
-('C101', 'Badminton Club', 'The club that gather badminton lovers and professions.', 'U201', 'Active', NULL);
+('C001', 'Badminton Club', 'The club that gather badminton lovers and professions.', 'U001', 'Active', '../uploads/C001.jpg'),
+('C002', 'Anya Club', 'We are the club who only like to watch spy and family.', 'U003', 'Active', '../uploads/C002.jpg'),
+('C003', 'One Punch Club', 'One PUNCHHHHHHHHHHHHHHHHHH', 'U004', 'Active', '../uploads/C003.jpg'),
+('C004', 'Boring club', 'Just boring', 'U005', 'Active', '../uploads/C004.jpg'),
+('C005', 'Cat Club', 'Cat is KINGGGGGGGGGGG!', 'U002', 'Active', '../uploads/C005.png');
 
 -- --------------------------------------------------------
 
@@ -105,7 +119,8 @@ CREATE TABLE `committee` (
 --
 
 INSERT INTO `committee` (`committeeID`, `eventID`, `memberID`) VALUES
-('CM101', 'E101', 'M102');
+('COM001', 'E101', 'M001'),
+('COM002', 'E102', 'M005');
 
 -- --------------------------------------------------------
 
@@ -125,7 +140,13 @@ CREATE TABLE `eventregistration` (
 --
 
 INSERT INTO `eventregistration` (`userID`, `eventID`, `registration_date`, `registration_status`) VALUES
-('U101', 'E101', '2026-05-12', 'Confirmed');
+('U006', 'E101', '2026-05-27', 'Confirmed'),
+('U007', 'E101', '2026-05-27', 'Confirmed'),
+('U007', 'E102', '2026-05-28', 'Confirmed'),
+('U008', 'E101', '2026-05-27', 'Confirmed'),
+('U008', 'E102', '2026-05-28', 'Confirmed'),
+('U009', 'E102', '2026-05-28', 'Confirmed'),
+('U010', 'E102', '2026-05-28', 'Confirmed');
 
 -- --------------------------------------------------------
 
@@ -149,9 +170,8 @@ CREATE TABLE `events` (
 --
 
 INSERT INTO `events` (`eventID`, `event_title`, `event_desc`, `event_date`, `event_time`, `event_venue`, `event_max_participants`, `attendance_qr`) VALUES
-('E101', 'Badminton Championship Cup 25/26', 'Badminton Competition', '2026-09-27', '07:00:00', 'Dewan Serbaguna, UMPSA Pekan', 64, NULL),
-('E103', 'AD', 'FAD', '2026-05-17', '14:29:00', 'FAEDF', 324, 'qrcodes/E103_qr.png'),
-('E104', 'adf', 'gsg', '2026-05-13', '15:06:00', 'gsa', 34, 'qrcodes/E104_qr.png');
+('E101', '🎬 Anya Movie Night: Free Screening!', 'Join us for a special screening of the Anya movie completely for free! Grab your friends, bring your favorite snacks, and enjoy a fun movie night with the club. Everyone is welcome, but slots are limited—make sure to register early!', '2026-05-28', '01:45:00', 'Student Lounge', 64, 'qrcodes/E101_qr.png'),
+('E102', 'Badminton Championship Cup 25/26', 'Badminton Competition', '2026-05-29', '00:45:00', 'Dewan Serbaguna, UMPSA Pekan', 20, 'qrcodes/E102_qr.png');
 
 -- --------------------------------------------------------
 
@@ -173,8 +193,12 @@ CREATE TABLE `membership` (
 --
 
 INSERT INTO `membership` (`memberID`, `start_date`, `end_date`, `userID`, `clubID`, `roleID`) VALUES
-('M101', '2026-05-12', '2027-05-12', 'U101', 'C101', 'R01'),
-('M102', '2026-05-12', '2027-05-12', 'U102', 'C101', 'R05');
+('M001', '2026-05-28', '2027-05-28', 'U009', 'C002', 'R01'),
+('M002', '2026-05-28', '2027-05-28', 'U010', 'C003', 'R08'),
+('M003', '2026-05-28', '2027-05-28', 'U007', 'C005', 'R08'),
+('M004', '2026-05-28', '2027-05-28', 'U008', 'C004', 'R08'),
+('M005', '2026-05-28', '2027-05-28', 'U006', 'C001', 'R08'),
+('M006', '2026-05-29', '2027-05-29', 'U011', 'C002', 'R08');
 
 -- --------------------------------------------------------
 
@@ -220,8 +244,38 @@ CREATE TABLE `points` (
 --
 
 INSERT INTO `points` (`pointID`, `stu_enforce`, `point_value`, `attendanceID`, `userID`) VALUES
-('P101', 'Absent without notice', -10, 'A101', 'U101'),
-('P102', 'Volunteer/helper in the event', 5, 'A102', 'U102');
+('P101', 'Present on time', 10, 'A101', 'U006'),
+('P102', 'Present on time', 15, 'A102', 'U009'),
+('P103', 'Absent without notice', -10, 'A103', 'U007'),
+('P104', 'Late arrival', 5, 'A104', 'U008'),
+('P105', 'Present on time', 15, 'A105', 'U006'),
+('P106', 'Present on time', 10, 'A106', 'U010'),
+('P107', 'Present on time', 10, 'A107', 'U009'),
+('P108', 'Present on time', 10, 'A108', 'U008'),
+('P109', 'Absent without notice', -10, 'A109', 'U007');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `semester`
+--
+
+CREATE TABLE `semester` (
+  `semesterID` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `year_sem` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `userID` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `clubID` varchar(10) COLLATE utf8mb4_general_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `semester`
+--
+
+INSERT INTO `semester` (`semesterID`, `year_sem`, `start_date`, `end_date`, `userID`, `clubID`) VALUES
+('Sm101', '2025/2026 Sem 1', '2025-10-06', '2026-02-11', 'U000', 'C001'),
+('Sm102', '2025/2026 Sem 2', '2026-03-09', '2026-07-14', 'U000', 'C001');
 
 -- --------------------------------------------------------
 
@@ -245,9 +299,16 @@ CREATE TABLE `students` (
 --
 
 INSERT INTO `students` (`userID`, `stu_ID`, `stu_name`, `stu_email`, `stu_address`, `stu_role`, `stu_contact_no`, `stu_profile_photo`) VALUES
-('U101', 'CB24096', 'Chua Teck Kunt', 'CB24096@adab.umpsa.edu.my', '11, Jalan Putera 5, Taman Putera Indah, Jalan Salleh, 84000 Muar, Johor.', 'committee', '016-7259523', 'uploads/U101_profile.jpg'),
-('U102', 'CB24099', 'Tan Wei Ming', 'CB24099@adab.email.ump.my', 'C-10-22', 'committee', '012-3456789', 'uploads/U102_profile.jpeg'),
-('U103', 'CB24105', 'Lee Jun Xian', 'CB24105@adab.umpsa.edu.my', NULL, NULL, NULL, NULL);
+('U006', 'CB24096', 'Chua Teck Kunt', 'cb24096@adab.umpsa.edu.my', '11, Jalan Putera 5, Taman Putera Indah, Jalan Salleh, 84000 Muar, Johor.', 'committee', '016-7259523', '../uploads/U006_profile.jpg'),
+('U007', 'CB24099', 'Tan Wei Ming', 'cb24099@adab.umpsa.edu.my', 'C-10-22', 'Student', '013-9876543', '../uploads/U007_profile.png'),
+('U008', 'CB24105', 'Lee Jun Xian', 'cb24105@adab.umpsa.edu.my', 'C-10-24', 'Student', '014-1112233', ''),
+('U009', 'CB24127', 'Harisivanesan A/L Manokaran', 'cb24127@adab.umpsa.edu.my', 'C-10-28', 'Student', '017-4445566', ''),
+('U010', 'CB24125', 'Puraveen A/L Anandha Kumar', 'cb24125@adab.umpsa.edu.my', 'C-10-28', 'Student', '019-8889900', ''),
+('U011', 'CB22006', 'Muhammad Farhan', 'farhan@siswa.umpsa.edu.my', 'Temerloh, Pahang', 'Student', '011-2233445', ''),
+('U012', 'CB22007', 'Gopal Krishnan', 'gopal@siswa.umpsa.edu.my', 'Ipoh, Perak', 'Student', '016-5556677', ''),
+('U013', 'CB22008', 'Hafizah Mansor', 'hafizah@siswa.umpsa.edu.my', 'Maroran, Pahang', 'Student', '018-7778899', ''),
+('U014', 'CB22009', 'Imran Hakim', 'imran@siswa.umpsa.edu.my', 'Johor Bahru, Johor', 'Student', '012-9991122', ''),
+('U015', 'CB22010', 'Joanne Lim', 'joanne@siswa.umpsa.edu.my', 'Georgetown, Penang', 'Student', '013-3334455', '');
 
 -- --------------------------------------------------------
 
@@ -267,11 +328,22 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`userID`, `user_username`, `user_password`, `user_role`) VALUES
-('U101', 'kunkun', '123', 'Student'),
-('U102', 'weiming', '123', 'Student'),
-('U103', 'junxian', '123', 'Student'),
-('U201', 'kunkunadmin', '123', 'Administrator'),
-('U301', 'kk', '123', 'Administrator');
+('U000', '000', '123', 'abc'),
+('U001', 'kunkunadmin', '123', 'Administrator'),
+('U002', 'weimingadmin', '123', 'Administrator'),
+('U003', 'harisadmin', '123', 'Administrator'),
+('U004', 'puraveenadmin', '123', 'Administrator'),
+('U005', 'junxianadmin', '123', 'Administrator'),
+('U006', 'kunkun', '123', 'Student'),
+('U007', 'weiming', '123', 'Student'),
+('U008', 'junxian', '123', 'Student'),
+('U009', 'haris', '123', 'Student'),
+('U010', 'puraveen', '123', 'Student'),
+('U011', 'farhan', '123', 'Student'),
+('U012', 'gopal', '123', 'Student'),
+('U013', 'hafizah', '123', 'Student'),
+('U014', 'imran', '123', 'Student'),
+('U015', 'joanne', '123', 'Student');
 
 --
 -- Indexes for dumped tables
@@ -343,6 +415,14 @@ ALTER TABLE `points`
   ADD KEY `userID` (`userID`);
 
 --
+-- Indexes for table `semester`
+--
+ALTER TABLE `semester`
+  ADD PRIMARY KEY (`semesterID`),
+  ADD KEY `club_ibfk_1` (`clubID`),
+  ADD KEY `user_ibfk_2` (`userID`);
+
+--
 -- Indexes for table `students`
 --
 ALTER TABLE `students`
@@ -405,6 +485,13 @@ ALTER TABLE `membership`
 ALTER TABLE `points`
   ADD CONSTRAINT `points_ibfk_1` FOREIGN KEY (`attendanceID`) REFERENCES `attendance` (`attendanceID`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `points_ibfk_2` FOREIGN KEY (`userID`) REFERENCES `students` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `semester`
+--
+ALTER TABLE `semester`
+  ADD CONSTRAINT `club_ibfk_1` FOREIGN KEY (`clubID`) REFERENCES `club` (`clubID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `user_ibfk_2` FOREIGN KEY (`userID`) REFERENCES `users` (`userID`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `students`

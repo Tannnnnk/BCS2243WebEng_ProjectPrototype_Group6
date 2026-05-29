@@ -1,25 +1,6 @@
 <?php
-session_start();
-if (!isset($_SESSION['logged_in']) || $_SESSION['user_role'] !== 'Administrator') {
-    header("Location: ../login.php");
-    exit();
-}
+require_once 'admin_login_materials.php';
 
-require_once '../db_connection.php';
-
-$userID = $_SESSION['userID'];
-$username = $_SESSION['user_username'];
-
-// Fetch Admin Profile Info for the background include
-$admin_name = $username;
-$photo_path = "";
-$res_admin = mysqli_query($link, "SELECT admin_name, admin_photo FROM administrator WHERE userID = '$userID'");
-if ($res_admin && $row = mysqli_fetch_assoc($res_admin)) {
-    $admin_name = !empty($row['admin_name']) ? $row['admin_name'] : $username;
-    $photo_path = !empty($row['admin_photo']) ? $row['admin_photo'] : "";
-}
-
-// Fetch all active clubs
 $res_clubs = mysqli_query($link, "SELECT clubID, club_name, club_photo FROM club WHERE club_operational_status='Active' ORDER BY club_name ASC");
 ?>
 

@@ -1,14 +1,7 @@
 <?php
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-session_start();
-
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: ../login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
+require_once 'student_login_materials.php';
 
 if (!isset($_GET['id'])) {
     header("Location: browse_event.php");
@@ -16,18 +9,6 @@ if (!isset($_GET['id'])) {
 }
 
 $eventID = mysqli_real_escape_string($link, $_GET['id']);
-$userID = $_SESSION['userID'];
-
-// --- FETCH USER PROFILE DATA (Prevents Undefined Variable Errors) ---
-$username = isset($_SESSION['user_username']) ? $_SESSION['user_username'] : 'Student';
-$role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : 'Student';
-
-$sql_profile = "SELECT stu_name FROM students WHERE userID = '$userID'";
-$result_profile = mysqli_query($link, $sql_profile);
-$stu_name = $username; // Default fallback
-if ($result_profile && $row = mysqli_fetch_assoc($result_profile)) {
-    $stu_name = !empty($row['stu_name']) ? $row['stu_name'] : $username;
-}
 
 // --- HANDLING ACTIONS ---
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
@@ -56,6 +37,7 @@ $remaining_slots = (int)$event['event_max_participants'] - (int)$total_registere
 $is_registered = mysqli_num_rows(mysqli_query($link, "SELECT * FROM eventregistration WHERE userID = '$userID' AND eventID = '$eventID'")) > 0;
 $is_waiting = mysqli_num_rows(mysqli_query($link, "SELECT * FROM waiting_list WHERE userID = '$userID' AND eventID = '$eventID'")) > 0;
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

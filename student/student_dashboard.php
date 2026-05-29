@@ -1,26 +1,5 @@
 <?php
-session_start();
-
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
-
-$userID = $_SESSION['userID'];
-$username = $_SESSION['user_username'];
-$role = $_SESSION['user_role'];
-
-$photo_path = "";
-$stu_name = $username; 
-
-$sql_profile = "SELECT stu_name, stu_profile_photo FROM students WHERE userID = '$userID'";
-$result_profile = mysqli_query($link, $sql_profile);
-if ($result_profile && $row = mysqli_fetch_assoc($result_profile)) {
-    $photo_path = !empty($row['stu_profile_photo']) ? $row['stu_profile_photo'] : "";
-    $stu_name = !empty($row['stu_name']) ? $row['stu_name'] : $username;
-}
+require_once 'student_login_materials.php';
 
 $total_points = 0;
 $sql_points = "SELECT SUM(point_value) as points FROM points WHERE userID = '$userID'";
@@ -34,18 +13,18 @@ $percentage = min(100, ($total_points / $max_points) * 100);
 $next_tier_points = 0;
 $current_tier = "";
 
-if ($total_points >= 1000) {
-    $current_tier = "Outstanding";
+if ($total_points >= 80) {
+    $current_tier = "Outstanding Participant";
     $next_tier_points = 0;
-} elseif ($total_points >= 600) {
-    $current_tier = "Advanced";
-    $next_tier_points = 1000 - $total_points;
-} elseif ($total_points >= 300) {
-    $current_tier = "Intermediate";
-    $next_tier_points = 600 - $total_points;
+} elseif ($total_points >= 50) {
+    $current_tier = "Highly Active Student";
+    $next_tier_points = 80 - $total_points;
+} elseif ($total_points >= 20) {
+    $current_tier = "Active Participant";
+    $next_tier_points = 50 - $total_points;
 } else {
-    $current_tier = "Beginner";
-    $next_tier_points = 300 - $total_points;
+    $current_tier = "Beginner Participant";
+    $next_tier_points = 20 - $total_points;
 }
 
 $next_event = null;

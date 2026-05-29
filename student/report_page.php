@@ -2,31 +2,8 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+require_once 'student_login_materials.php';
 
-session_start();
-
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: ../login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
-
-$userID = $_SESSION['userID'];
-$username = isset($_SESSION['user_username']) ? $_SESSION['user_username'] : 'Committee';
-$role = 'Committee'; 
-
-// --- DB QUERY: FETCH CURRENT STUDENT INFORMATION & PROFILE PICTURE ---
-$photo_path = "";
-$stu_name = $username; 
-
-$sql_profile = "SELECT stu_name, stu_profile_photo FROM students WHERE userID = '$userID'";
-$result_profile = mysqli_query($link, $sql_profile);
-
-if ($result_profile && $row = mysqli_fetch_assoc($result_profile)) {
-    $photo_path = !empty($row['stu_profile_photo']) ? $row['stu_profile_photo'] : "";
-    $stu_name = !empty($row['stu_name']) ? $row['stu_name'] : $username;
-}
 
 if (!empty($photo_path)) {
     if (strpos($photo_path, 'uploads/') === 0) {

@@ -1,33 +1,5 @@
 <?php
-session_start();
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
-
-$userID   = $_SESSION['userID'];
-$role     = $_SESSION['user_role'];
-$username = $_SESSION['user_username'];
-
-// Get display name and photo based on actual DB columns
-$display_name = $username;
-$photo_path   = "";
-
-if ($role == 'Student' || $role == 'Committee') {
-    $res = mysqli_query($link, "SELECT stu_name, stu_profile_photo FROM students WHERE userID='$userID'");
-    if ($res && $r = mysqli_fetch_assoc($res)) {
-        $display_name = $r['stu_name'] ?: $username;
-        $photo_path   = $r['stu_profile_photo'] ?: "";
-    }
-} else {
-    $res = mysqli_query($link, "SELECT admin_name, admin_photo FROM administrator WHERE userID='$userID'");
-    if ($res && $r = mysqli_fetch_assoc($res)) {
-        $display_name = $r['admin_name'] ?: $username;
-        $photo_path   = $r['admin_photo'] ?: "";
-    }
-}
+require_once 'admin_login_materials.php';
 
 // Search/Filter Logic
 $search = isset($_GET['search']) ? mysqli_real_escape_string($link, trim($_GET['search'])) : "";
@@ -97,7 +69,7 @@ $is_admin = ($role == 'Administrator');
         <div class="page-header">
             <h2>Club Directory</h2>
             <p>Search results for: <strong><?php echo $search ?: "All Clubs"; ?></strong></p>
-        </div>
+        </div><br>
 
         <form method="GET" class="filter-bar" style="margin-bottom: 30px; display: flex; gap: 10px;">
             <input type="text" name="search" placeholder="Search club or advisor..." value="<?php echo htmlspecialchars($search); ?>" style="padding: 10px; border-radius: 8px; border: 1px solid #ddd; width: 300px;">

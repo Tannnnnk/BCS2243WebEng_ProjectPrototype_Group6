@@ -39,7 +39,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     .sidebar a { padding: 15px 20px; color: #4a5568; text-decoration: none; font-weight: bold; font-size: 14px; border-left: 4px solid transparent; transition: all 0.3s; }
     .sidebar a:hover { background-color: #f8fafc; color: #0f172a; }
     .sidebar a.active { background-color: #f1f5f9; color: #0f172a; border-left: 4px solid #0f172a; }
-    .logout-btn { margin-top: auto; border-top: 1px solid #e2e8f0; color: #ef4444 !important; }
+    .logout-btn { margin-top: auto; border-top: 1px solid #e2e8f0; color: #ef4444 !important; text-align: center; }
 
     .content-area { flex: 1; padding: 40px; overflow-y: auto; }
 </style>
@@ -58,7 +58,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <div class="profile-group">
             <div class="top-bar-photo">
                 <?php if (!empty($photo_path)): ?>
-                    <img src="../<?php echo htmlspecialchars($photo_path); ?>" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">
+                    <img src="<?php echo htmlspecialchars($photo_path); ?>" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">
                 <?php else: ?>
                     <?php echo strtoupper(substr($admin_name, 0, 1)); ?>
                 <?php endif; ?>
@@ -75,11 +75,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <a href="administrator_dashboard.php" class="<?= ($current_page == 'administrator_dashboard.php') ? 'active' : '' ?>">Dashboard Overview</a>
         <a href="admin_profile.php" class="<?= ($current_page == 'admin_profile.php') ? 'active' : '' ?>">My Profile</a>
         <a href="manage_users.php" class="<?= ($current_page == 'manage_users.php') ? 'active' : '' ?>">Manage Users</a>
-        <a href="manage_clubs.php" class="<?= ($current_page == 'manage_clubs.php') ? 'active' : '' ?>">Manage Clubs</a>
-        <a href="manage_committees.php" class="<?= ($current_page == 'manage_committees.php') ? 'active' : '' ?>">Manage Committees</a>
+        <a href="manage_clubs.php" class="<?= ($current_page == 'manage_clubs.php' || $current_page == 'create_club.php') ? 'active' : '' ?>">Manage Clubs</a>
+        <a href="manage_committees.php" class="<?= ($current_page == 'manage_committees.php' || $current_page == 'comdetails.php') ? 'active' : '' ?>">Manage Committees</a>
         <a href="club_dashboard.php" class="<?= ($current_page == 'club_dashboard.php') ? 'active' : '' ?>">Club Analytics</a>
-        <a href="club_directory.php" class="<?= ($current_page == 'club_directory.php') ? 'active' : '' ?>">Club Directory</a>
-        <a href="manage_events.php" class="<?= ($current_page == 'manage_events.php') ? 'active' : '' ?>">Manage Events</a>
-        <a href="system_reports.php" class="<?= ($current_page == 'system_report.php') ? 'active' : '' ?>">Reports & Analytics</a>
+        <a href="club_directory.php" class="<?= ($current_page == 'club_directory.php' || $current_page == 'club_details.php') ? 'active' : '' ?>">Club Directory</a>
+        <a href="event_directory.php" class="<?= ($current_page == 'event_directory.php' || $current_page == 'engagement_trend.php' || $current_page == 'capacity_control.php') ? 'active' : '' ?>">Event Directory</a>
+        <a href="system_reports.php" class="<?= ($current_page == 'system_reports.php' || $current_page == 'participation_and_attendance_dashboard.php') ? 'active' : '' ?>">Reports & Analytics</a>
         <a href="../logout.php" class="logout-btn">LogOut</a>
     </div>

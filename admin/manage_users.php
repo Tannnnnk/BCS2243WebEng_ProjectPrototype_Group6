@@ -1,33 +1,6 @@
 <?php
-session_start();
+require_once 'admin_login_materials.php';
 
-// Redirect to login if not an Administrator
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true || $_SESSION['user_role'] !== 'Administrator') {
-    header("Location: login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
-
-$userID = $_SESSION['userID'];
-$username = $_SESSION['user_username'];
-$role = $_SESSION['user_role'];
-
-// Fetch Admin's Real Name and Photo for the Top Bar
-$admin_name = $username; 
-$photo_path = "";
-try {
-    $sql_admin = "SELECT admin_name, admin_photo FROM administrator WHERE userID = '$userID'";
-    $res_admin = mysqli_query($link, $sql_admin);
-    if ($res_admin && $row = mysqli_fetch_assoc($res_admin)) {
-        $admin_name = !empty($row['admin_name']) ? $row['admin_name'] : $username;
-        $photo_path = !empty($row['admin_photo']) ? $row['admin_photo'] : "";
-    }
-} catch (Exception $e) {}
-
-// ==========================================
-// HANDLE FORM SUBMISSIONS (CREATE, DELETE)
-// ==========================================
 $msg = "";
 $msg_type = "";
 

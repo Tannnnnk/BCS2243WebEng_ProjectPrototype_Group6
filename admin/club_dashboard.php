@@ -1,27 +1,5 @@
 <?php
-session_start();
-
-// 1. Security Check: Ensure only Administrators can access this page
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true || $_SESSION['user_role'] !== 'Administrator') {
-    header("Location: login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
-
-$userID   = $_SESSION['userID'];
-$username = $_SESSION['user_username'];
-
-// 2. Fetch Admin Profile Info (Fixing pfp pathing)
-$admin_name = $username;
-$photo_path = "";
-$res_admin = mysqli_query($link, "SELECT admin_name, admin_photo FROM administrator WHERE userID='$userID'");
-if ($res_admin && $r = mysqli_fetch_assoc($res_admin)) {
-    $admin_name = !empty($r['admin_name']) ? $r['admin_name'] : $username;
-    $photo_path = !empty($r['admin_photo']) ? $r['admin_photo'] : "";
-}
-
-// ---- SUMMARY STATS ----
+require_once 'admin_login_materials.php';
 
 // Total Clubs
 $total_clubs = 0;

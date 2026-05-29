@@ -2,32 +2,7 @@
 // basic debugging setup for local testing
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-
-session_start();
-
-// check if user logged in properly
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: ../login.php");
-    exit();
-}
-
-require_once '../db_connection.php';
-
-$userID = $_SESSION['userID'];
-$username = $_SESSION['user_username'];
-$role = $_SESSION['user_role'];
-
-// get student pro and name details
-$photo_path = "";
-$stu_name = $username; 
-
-$profile_sql = "SELECT stu_name, stu_profile_photo FROM students WHERE userID = '$userID'";
-$profile_run = mysqli_query($link, $profile_sql);
-
-if ($profile_run && $p_row = mysqli_fetch_assoc($profile_run)) {
-    $photo_path = !empty($p_row['stu_profile_photo']) ? $p_row['stu_profile_photo'] : "";
-    $stu_name = !empty($p_row['stu_name']) ? $p_row['stu_name'] : $username;
-}
+require_once 'student_login_materials.php';
 
 // define pro logic
 $target_file = __DIR__ . '/../uploads/' . $photo_path;
@@ -43,15 +18,17 @@ $username_display = '<img src="' . $img_src . '" style="width: 45px; height: 45p
 // check if the current user is a committee member 
 $check_comm_sql = "SELECT m.*, mr.m_role_desc FROM membership m 
                    JOIN membershiprole mr ON m.roleID = mr.roleID 
-                   WHERE m.userID = '$userID' AND m.roleID < 'R08' LIMIT 1";
+                   WHERE m.userID = '$userID' AND m.roleID <= 'R08' LIMIT 1";
 $comm_run = mysqli_query($link, $check_comm_sql);
-$is_comm = (mysqli_num_rows($comm_run) > 0);
+// Check if the session variable exists, and if it specifically equals 'Committee'
+$is_comm = (isset($_SESSION['active_role']) && $_SESSION['active_role'] === 'Committee');
 
 $committee_role = "General Student";
 if ($is_comm) {
     $c_row = mysqli_fetch_assoc($comm_run);
     $committee_role = $c_row['m_role_desc'];
 }
+
 
 $msg = "";
 $msg_type = "";
@@ -60,9 +37,41 @@ $msg_type = "";
 $clubID = isset($_GET['clubID']) ? mysqli_real_escape_string($link, $_GET['clubID']) : '';
 
 if (empty($clubID)) {
-    $fallback = mysqli_query($link, "SELECT clubID FROM club LIMIT 1");
+    $fallback = mysqli_query($link, "
+    SELECT m.clubID
+    FROM club c
+    INNER JOIN membership m ON c.clubID = m.clubID
+    INNER JOIN committee cm ON m.memberID = cm.memberID
+    INNER JOIN events e ON cm.eventID = e.eventID
+    WHERE m.userID = '$userID'
+    LIMIT 1
+    ");
+
     if ($fallback && $f_row = mysqli_fetch_assoc($fallback)) {
         $clubID = $f_row['clubID'];
+    }
+}
+
+// registration processing block
+if (isset($_POST['register_event'])) {
+    $eventID = mysqli_real_escape_string($link, $_POST['eventID']);
+    $today_date = date('Y-m-d');
+    
+    // prevent multiple registrations
+    $dup_check = mysqli_query($link, "SELECT * FROM eventregistration WHERE userID = '$userID' AND eventID = '$eventID'");
+    if (mysqli_num_rows($dup_check) > 0) {
+        $msg = "⚠️ You are already registered for this event.";
+        $msg_type = "error";
+    } else {
+        $insert_sql = "INSERT INTO eventregistration (userID, eventID, registration_date, registration_status) 
+                       VALUES ('$userID', '$eventID', '$today_date', 'Confirmed')";
+        if (mysqli_query($link, $insert_sql)) {
+            $msg = "🎉 Successfully registered for the event!";
+            $msg_type = "success";
+        } else {
+            $msg = "❌ Error processing registration entry.";
+            $msg_type = "error";
+        }
     }
 }
 
@@ -122,17 +131,24 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
         .central-board { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .board-title { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
         
+        /* natural css names instead of strict numerical tracking */
         .dashboard-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .action-card { background: #f8fafc; border: 1px dashed #cbd5e1; padding: 15px; text-align: center; border-radius: 8px; text-decoration: none; color: #475569; font-size: 13px; font-weight: 600; transition: 0.2s; }
         .action-card:hover { background: #ecfdf5; border-color: #10b981; color: #065f46; }
         
-        table { width: 100%; border-collapse: collapse; text-align: left; }
+        table { width: 100%; border-collapse: collapse; text-align: center; }
         th { background-color: #f8fafc; padding: 12px; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: bold; border-bottom: 2px solid #e2e8f0; }
         td { padding: 14px 12px; font-size: 14px; color: #334155; border-bottom: 1px solid #f1f5f9; }
         
         .btn { padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; border: none; cursor: pointer; display: inline-block; }
+        .btn-register { background-color: #3b82f6; color: white; }
+        .btn-register:hover { background-color: #2563eb; }
         .btn-edit { background-color: #f59e0b; color: white; margin-right: 5px; }
         .btn-delete { background-color: #ef4444; color: white; }
+        .btn-info { background-color: #3b82f6; color: white; margin-right: 5px; }
+        .btn-info:hover { background-color: #2563eb; }
+        .btn-assign { background-color: #6366f1; color: white; }
+        .btn-assign:hover { background-color: #4f46e5; }
         
         .role-indicator { font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 12px; text-transform: uppercase; }
         .ind-com { background-color: #fef3c7; color: #d97706; }
@@ -155,12 +171,9 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
     </style>
 </head>
 <body>
-
     <?php include 'student_background.php'; ?>
-
     <div class="content-area">
         <div class="workspace-wrapper">
-            
             <?php if (!empty($msg)): ?>
                 <div class="alert <?php echo $msg_type; ?>"><?php echo $msg; ?></div>
             <?php endif; ?>
@@ -187,17 +200,23 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
                                 <th>Event Name Title</th>
                                 <th>Venue Location</th>
                                 <th>Scheduled Date</th>
-                                <th>Action Controls</th>
+                                <th style="text-align:center;">Action Controls</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if ($events_result && mysqli_num_rows($events_result) > 0): ?>
                                 <?php while ($row = mysqli_fetch_assoc($events_result)): ?>
                                     <tr>
-                                        <td><strong><?php echo htmlspecialchars($row['event_title']); ?></strong></td>
+                                        <td><a href="engagement_trend.php?eventID=<?php echo $row['eventID']; ?>&clubID=<?php echo urlencode($clubID); ?>" class="btn btn-link"><?php echo htmlspecialchars($row['event_title']); ?></a></td>
                                         <td>📍 <?php echo htmlspecialchars($row['event_venue']); ?></td>
                                         <td>📅 <?php echo date('d M Y', strtotime($row['event_date'])); ?></td>
                                         <td>
+                                            <?php if (!empty($row['attendance_qr'])): ?>
+                                                <a href="<?php echo htmlspecialchars($row['attendance_qr']); ?>" target="_blank" class="btn btn-info" title="View QR Code">QR</a>
+                                            <?php else: ?>
+                                                <button class="btn" style="background: #e2e8f0; color: #a0aec0; cursor: not-allowed; margin-right: 5px;" title="No QR Assigned">QR</button>
+                                            <?php endif; ?> 
+                                            <a href="assign_committee.php?eventID=<?php echo $row['eventID']; ?>&clubID=<?php echo urlencode($clubID); ?>" class="btn btn-assign">Assign</a>
                                             <a href="manage_events.php?edit_id=<?php echo $row['eventID']; ?>&clubID=<?php echo urlencode($clubID); ?>" class="btn btn-edit">Edit</a>
                                             <a href="event_directory.php?delete_id=<?php echo $row['eventID']; ?>&clubID=<?php echo urlencode($clubID); ?>" class="btn btn-delete" onclick="return confirm('Are you sure you want to permanently delete this event track record?');">Delete</a>
                                         </td>
@@ -235,7 +254,41 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
 
                     <div class="dashboard-actions">
                         <a href="browse_event.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">🔍 Browse Events</a>
-<a href="student_my_participation.php" class="action-card">📌 My Registration</a>                        <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">⏳ Event History</a>
+                        <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">📌 My Registration</a>
+                        <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">⏳ Event History</a>
+                    </div>
+
+                    <div id="browse">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Available Club Events</th>
+                                    <th>Venue Location</th>
+                                    <th>Scheduled Date</th>
+                                    <th>Action Controls</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if ($events_result && mysqli_num_rows($events_result) > 0): ?>
+                                    <?php mysqli_data_seek($events_result, 0); ?>
+                                    <?php while ($row = mysqli_fetch_assoc($events_result)): ?>
+                                        <tr>
+                                            <td><strong><?php echo htmlspecialchars($row['event_title']); ?></strong></td>
+                                            <td>📍 <?php echo htmlspecialchars($row['event_venue']); ?></td>
+                                            <td>📅 <?php echo date('d M Y', strtotime($row['event_date'])); ?></td>
+                                            <td>
+                                                <form method="POST" action="event_directory.php?clubID=<?php echo urlencode($clubID); ?>" style="display:inline;">
+                                                    <input type="hidden" name="eventID" value="<?php echo htmlspecialchars($row['eventID']); ?>">
+                                                    <button type="submit" name="register_event" class="btn btn-register">Register for Event</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
+                                    <tr><td colspan="4" style="text-align:center; color:#94a3b8;">No open events available.</td></tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -270,9 +323,7 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
                     </div>
                 </div>
             <?php endif; ?>
-
         </div>
     </div>
-
 </body>
 </html>
