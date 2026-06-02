@@ -10,18 +10,13 @@ if (!isset($_GET['id'])) {
 
 $eventID = mysqli_real_escape_string($link, $_GET['id']);
 
-// --- HANDLING ACTIONS ---
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
+// --- HANDLING ACTIONS (Registration Only) ---
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'register') {
     $today = date('Y-m-d');
-    if ($_POST['action'] == 'register') {
-        $sql = "INSERT INTO eventregistration (userID, eventID, registration_date, registration_status) 
-                VALUES ('$userID', '$eventID', '$today', 'Confirmed')";
-        mysqli_query($link, $sql);
-    } elseif ($_POST['action'] == 'join_waiting') {
-        $sql = "INSERT INTO waiting_list (userID, eventID, waiting_date) 
-                VALUES ('$userID', '$eventID', '$today')";
-        mysqli_query($link, $sql);
-    }
+    $sql = "INSERT INTO eventregistration (userID, eventID, registration_date, registration_status) 
+            VALUES ('$userID', '$eventID', '$today', 'Confirmed')";
+    mysqli_query($link, $sql);
+    
     header("Location: student_view_event_details.php?id=$eventID");
     exit();
 }
@@ -35,7 +30,6 @@ $total_registered = mysqli_fetch_assoc($count_query)['total'];
 $remaining_slots = (int)$event['event_max_participants'] - (int)$total_registered;
 
 $is_registered = mysqli_num_rows(mysqli_query($link, "SELECT * FROM eventregistration WHERE userID = '$userID' AND eventID = '$eventID'")) > 0;
-$is_waiting = mysqli_num_rows(mysqli_query($link, "SELECT * FROM waiting_list WHERE userID = '$userID' AND eventID = '$eventID'")) > 0;
 ?>
 
 <!DOCTYPE html>
@@ -61,14 +55,15 @@ $is_waiting = mysqli_num_rows(mysqli_query($link, "SELECT * FROM waiting_list WH
 
             <div class="btn-container">
                 <?php if ($is_registered): ?>
-                    <div class="msg-box" style="background:#d1fae5; color:#065f46;">✅ Registered Successfully</div>
-                <?php elseif ($is_waiting): ?>
-                    <div class="msg-box" style="background:#fef3c7; color:#92400e;">⏳ On Waiting List (Pending Admin Approval)</div>
+                    <div class="msg-box" style="background:#d1fae5; color:#065f46;">✅ Already Registered</div>
                 <?php elseif ($remaining_slots > 0): ?>
-                    <form method="POST"><button type="submit" name="action" value="register" class="btn-action" style="background:#10b981;">Register Now</button></form>
+                    <form method="POST">
+                        <button type="submit" name="action" value="register" class="btn-action" style="background:#10b981;">Register Now</button>
+                    </form>
                 <?php else: ?>
-                    <form method="POST"><button type="submit" name="action" value="join_waiting" class="btn-action" style="background:#ef4444;">Join Waiting List</button></form>
+                    <div class="msg-box" style="background:#fee2e2; color:#991b1b;">🚫 Event Full - No slots available</div>
                 <?php endif; ?>
+                
                 <br><br>
                 <a href="browse_event.php" class="btn-action" style="background:#475569;">Back</a>
             </div>

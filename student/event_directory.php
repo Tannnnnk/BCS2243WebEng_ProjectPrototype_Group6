@@ -114,6 +114,27 @@ if ($q5 && $p_row = mysqli_fetch_assoc($q5)) {
 // general data pulling queries
 $events_result = mysqli_query($link, "SELECT * FROM events ORDER BY event_date ASC");
 $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURDATE() ORDER BY event_date ASC LIMIT 3");
+
+?>
+<?php
+
+$events_data = mysqli_query($link, "SELECT * FROM events");
+$category_counts = [];
+$month_counts = [];
+
+while ($row = mysqli_fetch_assoc($events_data)) {
+    // 1. Group by Club ID (with safety check)
+    // We use ?? 'Unassigned' to catch cases where clubID is null/missing
+    $cid = $row['clubID'] ?? 'Unassigned'; 
+    $category_counts[$cid] = ($category_counts[$cid] ?? 0) + 1;
+
+    // 2. Group by Month
+    // We also check if event_date exists to avoid errors on bad data
+    if (!empty($row['event_date'])) {
+        $month = date('F', strtotime($row['event_date']));
+        $month_counts[$month] = ($month_counts[$month] ?? 0) + 1;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -168,7 +189,9 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
         .rec-item:last-child { border-bottom: none; }
         .rec-title { font-weight: bold; color: #1e293b; font-size: 14px; }
         .rec-meta { font-size: 12px; color: #64748b; }
+
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <?php include 'student_background.php'; ?>
@@ -237,13 +260,48 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
                         <div class="stat-item">Total Participants <span><?php echo $total_pax; ?></span></div>
                     </div>
                     <div class="split-card">
-                        <h3>📈 Chart Overview</h3>
-                        <div class="chart-placeholder">
-                            <strong>Event by Category | Monthly Event Trend</strong>
-                            <span style="font-size:11px; color:#94a3b8;">PopularEvent by Registration</span>
-                        </div>
-                    </div>
-                </div>
+    <h3>📈 Chart Overview</h3>
+    <div style="height: 200px; margin-bottom: 20px;">
+        <canvas id="categoryChart"></canvas>
+    </div>
+    <div style="height: 200px;">
+        <canvas id="monthlyTrendChart"></canvas>
+    </div>
+</div>
+
+           <script>
+// Pie Chart: Events by Club
+new Chart(document.getElementById('categoryChart'), {
+    type: 'pie',
+    data: {
+        labels: <?php echo json_encode(array_keys($category_counts)); ?>,
+        datasets: [{
+            data: <?php echo json_encode(array_values($category_counts)); ?>,
+            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+});
+
+// Line Chart: Monthly Trend
+new Chart(document.getElementById('monthlyTrendChart'), {
+    type: 'line',
+    data: {
+        labels: <?php echo json_encode(array_keys($month_counts)); ?>,
+        datasets: [{
+            label: 'Events per Month',
+            data: <?php echo json_encode(array_values($month_counts)); ?>,
+            borderColor: '#6366f1',
+            fill: false,
+            tension: 0.1
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+});
+</script>
+
+        </div>
+    </div>
 
             <?php else: ?>
                 <div class="central-board">
@@ -254,8 +312,10 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
 
                     <div class="dashboard-actions">
                         <a href="browse_event.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">🔍 Browse Events</a>
-                        <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">📌 My Registration</a>
-                        <a href="participation.php?clubID=<?php echo urlencode($clubID); ?>" class="action-card">⏳ Event History</a>
+                        <a href="student_my_participation.php" class="action-card">📌 My Registration</a>
+                        <a href="student_event_history.php" class="action-card">📌 My Event History</a>
+                        
+                        
                     </div>
 
                     <div id="browse">
@@ -316,12 +376,35 @@ $rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURD
                 </div>
 
                 <div class="split-card" style="margin-top: 25px;">
-                    <h3>📈 Activity Section</h3>
-                    <div class="chart-placeholder" style="height: 160px;">
-                        <strong>[Participant Trend Chart Canvas Component Layer]</strong>
-                        <span style="font-size:11px; color:#94a3b8;">Visualizing Monthly Engagement Distributions</span>
-                    </div>
-                </div>
+    <h3>📈 Activity Section</h3>
+    <div class="chart-placeholder" style="height: 160px;">
+        <canvas id="activityChart"></canvas>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Assuming you have your data ready from the PHP logic we discussed earlier
+    // This creates a Bar Chart for the trend
+    new Chart(document.getElementById('activityChart'), {
+        type: 'bar',
+        data: {
+            // Using the months and counts from your PHP processing
+            labels: <?php echo json_encode(array_keys($month_counts)); ?>,
+            datasets: [{
+                label: 'Monthly Engagement',
+                data: <?php echo json_encode(array_values($month_counts)); ?>,
+                backgroundColor: '#3b82f6'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+</script>
             <?php endif; ?>
         </div>
     </div>
