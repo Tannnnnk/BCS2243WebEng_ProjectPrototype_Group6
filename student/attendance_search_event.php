@@ -12,9 +12,7 @@ if (empty($clubID)) {
     $fallback = mysqli_query($link, "
         SELECT m.clubID
         FROM club c
-        INNER JOIN membership m ON c.clubID = m.clubID
-        INNER JOIN committee cm ON m.memberID = cm.memberID
-        INNER JOIN events e ON cm.eventID = e.eventID
+        JOIN membership m ON c.clubID = m.clubID
         WHERE m.userID = '$userID'
         LIMIT 1
     ");
