@@ -90,7 +90,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <a href="student_dashboard.php" class="<?= ($current_page == 'student_dashboard.php') ? 'active' : '' ?>">Dashboard</a>
                 <a href="profile_dashboard.php" class="<?= ($current_page == 'profile_dashboard.php') ? 'active' : '' ?>">My Profile</a>       
                 <a href="club_directory.php" class="<?= ($current_page == 'club_directory.php' || $current_page == 'club_details.php') ? 'active' : '' ?>">Club Directory</a>
-                <a href="event_directory.php" class="<?= ($current_page == 'event_directory.php' || $current_page == 'browse_event.php') ? 'active' : '' ?>">Event Directory</a>
+                <a href="event_directory.php" class="<?= in_array($current_page, ['event_directory.php', 'browse_event.php', 'student_my_participation.php', 'student_event_history.php', 'student_view_event_details.php']) ? 'active' : '' ?>">Event Directory</a>
                 <a href="student_participation_dashboard.php" class="<?= ($current_page == 'student_participation_dashboard.php') ? 'active' : '' ?>">My Participation</a>
                 
                 <a href="../logout.php" class="logout-btn">LogOut</a>

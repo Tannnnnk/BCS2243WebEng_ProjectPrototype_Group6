@@ -1,18 +1,5 @@
 <?php
-// 1. Start session and connect to DB
-session_start();
-require_once '../db_connection.php';
-
-// 2. Prevent "Undefined variable" warnings
-$userID = $_SESSION['userID'];
-
-// Fetch user data for the background display
-$stu_query = mysqli_query($link, "SELECT stu_name FROM students WHERE userID = '$userID'");
-$stu_row = mysqli_fetch_assoc($stu_query);
-$stu_name = $stu_row['stu_name'] ?? $_SESSION['user_username'];
-
-// Define active_role for student_background.php to fix the warning
-$active_role = "Student"; 
+require_once 'student_login_materials.php';
 
 // 3. Handle Cancellation Logic
 if (isset($_GET['action']) && $_GET['action'] == 'cancel' && isset($_GET['id'])) {
@@ -41,7 +28,7 @@ include 'student_background.php';
 
 <div class="content-area">
     <h2>My Registration</h2>
-    <table border="1" style="width: 100%; text-align: left; border-collapse: collapse;">
+    <table border="1" style="width: 100%; text-align: left; border-collapse: collapse; ">
         <tr>
             <th style="padding: 10px;">Event Title</th>
             <th style="padding: 10px;">Date</th>
