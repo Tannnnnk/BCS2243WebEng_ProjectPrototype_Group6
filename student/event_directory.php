@@ -87,33 +87,75 @@ if (isset($_GET['delete_id']) && $is_comm) {
     }
 }
 
-// database metrics collection
+// --- DATABASE METRICS COLLECTION ---
 $total_events = 0;
-$q1 = mysqli_query($link, "SELECT COUNT(*) as total FROM events");
-if ($q1) { $total_events = mysqli_fetch_assoc($q1)['total']; }
-
 $total_pax = 0;
-$q2 = mysqli_query($link, "SELECT COUNT(*) as total FROM eventregistration");
-if ($q2) { $total_pax = mysqli_fetch_assoc($q2)['total']; }
-
-$my_reg_count = 0;
-$q3 = mysqli_query($link, "SELECT COUNT(*) as total FROM eventregistration WHERE userID = '$userID'");
-if ($q3) { $my_reg_count = mysqli_fetch_assoc($q3)['total']; }
-
 $upcoming_count = 0;
-$q4 = mysqli_query($link, "SELECT COUNT(*) as total FROM events WHERE event_date >= CURDATE()");
-if ($q4) { $upcoming_count = mysqli_fetch_assoc($q4)['total']; }
+$month_counts = [];
 
-// point system summation
-$total_points = 0;
-$q5 = mysqli_query($link, "SELECT SUM(point_value) as points FROM points WHERE userID = '$userID'");
-if ($q5 && $p_row = mysqli_fetch_assoc($q5)) {
-    $total_points = $p_row['points'] ? $p_row['points'] : 0;
+// Fetch metrics using JOINS to safely access clubID through committee/membership
+$metrics_query = "
+    SELECT 
+        (SELECT COUNT(DISTINCT e.eventID) FROM events e 
+         JOIN committee cm ON e.eventID = cm.eventID 
+         JOIN membership m ON cm.memberID = m.memberID 
+         WHERE m.clubID = '$clubID') as total_ev,
+        (SELECT COUNT(*) FROM eventregistration r 
+         JOIN events e ON r.eventID = e.eventID 
+         JOIN committee cm ON e.eventID = cm.eventID
+         JOIN membership m ON cm.memberID = m.memberID
+         WHERE m.clubID = '$clubID') as total_p,
+        (SELECT COUNT(DISTINCT e.eventID) FROM events e 
+         JOIN committee cm ON e.eventID = cm.eventID 
+         JOIN membership m ON cm.memberID = m.memberID 
+         WHERE e.event_date >= CURDATE() AND m.clubID = '$clubID') as up_ev
+";
+
+$res = mysqli_query($link, $metrics_query);
+if ($res) {
+    $row = mysqli_fetch_assoc($res);
+    $total_events = $row['total_ev'] ?? 0;
+    $total_pax = $row['total_p'] ?? 0;
+    $upcoming_count = $row['up_ev'] ?? 0;
 }
 
-// general data pulling queries
-$events_result = mysqli_query($link, "SELECT * FROM events ORDER BY event_date ASC");
-$rec_result = mysqli_query($link, "SELECT * FROM events WHERE event_date >= CURDATE() ORDER BY event_date ASC LIMIT 3");
+// Monthly Trend Data
+$trend_sql = "SELECT e.event_date FROM events e
+              JOIN committee cm ON e.eventID = cm.eventID 
+              JOIN membership m ON cm.memberID = m.memberID 
+              WHERE m.clubID = '$clubID'";
+$trend_res = mysqli_query($link, $trend_sql);
+while ($row = mysqli_fetch_assoc($trend_res)) {
+    if (!empty($row['event_date'])) {
+        $month = date('F', strtotime($row['event_date']));
+        $month_counts[$month] = ($month_counts[$month] ?? 0) + 1;
+    }
+}
+
+
+
+// --- STUDENT DASHBOARD METRICS ---
+
+// 1. Count my registered events
+$reg_query = mysqli_query($link, "SELECT COUNT(*) as total FROM eventregistration WHERE userID = '$userID'");
+$my_reg_count = ($reg_query) ? mysqli_fetch_assoc($reg_query)['total'] : 0;
+
+$points_query = mysqli_query($link, "
+    SELECT SUM(point_value) as total 
+    FROM points 
+    WHERE userID = '$userID'
+");
+$total_points = ($points_query) ? (mysqli_fetch_assoc($points_query)['total'] ?? 0) : 0;
+
+// 3. Get Recommendations
+$rec_result = mysqli_query($link, "
+    SELECT * FROM events 
+    WHERE event_date >= CURDATE() 
+    ORDER BY event_date ASC 
+    LIMIT 3
+");
+
+?>
 
 ?>
 <?php
@@ -135,6 +177,12 @@ while ($row = mysqli_fetch_assoc($events_data)) {
         $month_counts[$month] = ($month_counts[$month] ?? 0) + 1;
     }
 }
+
+$events_result = mysqli_query($link, "
+    SELECT * FROM events 
+    WHERE event_date >= CURDATE()
+    ORDER BY event_date ASC
+");
 ?>
 
 <!DOCTYPE html>
@@ -260,30 +308,14 @@ while ($row = mysqli_fetch_assoc($events_data)) {
                         <div class="stat-item">Total Participants <span><?php echo $total_pax; ?></span></div>
                     </div>
                     <div class="split-card">
+   <div class="split-card">
     <h3>📈 Chart Overview</h3>
-    <div style="height: 200px; margin-bottom: 20px;">
-        <canvas id="categoryChart"></canvas>
-    </div>
     <div style="height: 200px;">
         <canvas id="monthlyTrendChart"></canvas>
     </div>
 </div>
 
-           <script>
-// Pie Chart: Events by Club
-new Chart(document.getElementById('categoryChart'), {
-    type: 'pie',
-    data: {
-        labels: <?php echo json_encode(array_keys($category_counts)); ?>,
-        datasets: [{
-            data: <?php echo json_encode(array_values($category_counts)); ?>,
-            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
-        }]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
-});
-
-// Line Chart: Monthly Trend
+<script>
 new Chart(document.getElementById('monthlyTrendChart'), {
     type: 'line',
     data: {
@@ -292,8 +324,7 @@ new Chart(document.getElementById('monthlyTrendChart'), {
             label: 'Events per Month',
             data: <?php echo json_encode(array_values($month_counts)); ?>,
             borderColor: '#6366f1',
-            fill: false,
-            tension: 0.1
+            tension: 0.3
         }]
     },
     options: { responsive: true, maintainAspectRatio: false }
@@ -336,12 +367,13 @@ new Chart(document.getElementById('monthlyTrendChart'), {
                                             <td><strong><?php echo htmlspecialchars($row['event_title']); ?></strong></td>
                                             <td>📍 <?php echo htmlspecialchars($row['event_venue']); ?></td>
                                             <td>📅 <?php echo date('d M Y', strtotime($row['event_date'])); ?></td>
-                                            <td>
-                                                <form method="POST" action="event_directory.php?clubID=<?php echo urlencode($clubID); ?>" style="display:inline;">
-                                                    <input type="hidden" name="eventID" value="<?php echo htmlspecialchars($row['eventID']); ?>">
-                                                    <button type="submit" name="register_event" class="btn btn-register">Register for Event</button>
-                                                </form>
-                                            </td>
+                                            <td style="text-align: center;">
+    <a href="student_view_event_details.php?id=<?php echo urlencode($row['eventID']); ?>" 
+       class="btn btn-info" 
+       style="padding: 6px 14px; text-decoration: none; display: inline-block;">
+       View Details
+    </a>
+</td>
                                         </tr>
                                     <?php endwhile; ?>
                                 <?php else: ?>
@@ -352,28 +384,27 @@ new Chart(document.getElementById('monthlyTrendChart'), {
                     </div>
                 </div>
 
-                <div class="footer-split">
-                    <div class="split-card">
-                        <h3>📊 Summary Section</h3>
-                        <div class="stat-item">Registered Events <span><?php echo $my_reg_count; ?></span></div>
-                        <div class="stat-item">Upcoming Events Available <span><?php echo $upcoming_count; ?></span></div>
-                        <div class="stat-item">Participants Points Earned <span><?php echo $total_points; ?> pts</span></div>
-                    </div>
+             <div class="footer-split">
+    <div class="split-card">
+        <h3>📊 Summary Section</h3>
+        <div class="stat-item">Registered Events <span><?php echo $my_reg_count; ?></span></div>
+        <div class="stat-item">Upcoming Events Available <span><?php echo $upcoming_count; ?></span></div>
+        </div>
 
-                    <div class="split-card">
-                        <h3>🌟 Event Recommendation Section</h3>
-                        <?php if ($rec_result && mysqli_num_rows($rec_result) > 0): ?>
-                            <?php while ($rec_row = mysqli_fetch_assoc($rec_result)): ?>
-                                <div class="rec-item">
-                                    <div class="rec-title">🔥 [Club ID: <?php echo htmlspecialchars($clubID); ?>] <?php echo htmlspecialchars($rec_row['event_title']); ?></div>
-                                    <div class="rec-meta">Location: <?php echo htmlspecialchars($rec_row['event_venue']); ?> | Date: <?php echo date('d M Y', strtotime($rec_row['event_date'])); ?></div>
-                                </div>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <div style="color: #94a3b8; font-size: 13px; font-style: italic;">No recommendations at this time.</div>
-                        <?php endif; ?>
-                    </div>
+    <div class="split-card">
+        <h3>🌟 Event Recommendation Section</h3>
+        <?php if ($rec_result && mysqli_num_rows($rec_result) > 0): ?>
+            <?php while ($rec_row = mysqli_fetch_assoc($rec_result)): ?>
+                <div class="rec-item">
+                    <div class="rec-title">🔥 <?php echo htmlspecialchars($rec_row['event_title']); ?></div>
+                    <div class="rec-meta">Location: <?php echo htmlspecialchars($rec_row['event_venue']); ?> | Date: <?php echo date('d M Y', strtotime($rec_row['event_date'])); ?></div>
                 </div>
+            <?php endwhile; ?>
+        <?php else: ?>
+            <div style="color: #94a3b8; font-size: 13px; font-style: italic;">No recommendations at this time.</div>
+        <?php endif; ?>
+    </div>
+</div>
 
                 <div class="split-card" style="margin-top: 25px;">
     <h3>📈 Activity Section</h3>

@@ -22,9 +22,6 @@ if (!$result || mysqli_num_rows($result) == 0) {
 
 $event = mysqli_fetch_assoc($result);
 
-// --- FIXED: Safe fallback placeholder to prevent database crash ---
-$registered_count = 0; 
-
 // --- CHECK STATUS BANNER VALUES ---
 $today_date = date('Y-m-d');
 $event_date = $event['event_date'];
@@ -57,13 +54,10 @@ if ($event_date < $today_date) {
         .details-value { font-size: 15px; color: #334155; }
         .desc-box { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; min-height: 60px; line-height: 1.5; }
         
-        .action-button-container { display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-top: 30px; border-top: 2px solid #f1f5f9; padding-top: 20px; }
-        .btn-group-left { display: flex; gap: 10px; }
+        .action-button-container { display: flex; gap: 10px; justify-content: flex-start; align-items: center; margin-top: 30px; border-top: 2px solid #f1f5f9; padding-top: 20px; }
         
         .btn { display: inline-block; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; text-align: center; border: none; }
         .btn-back { background-color: #475569; color: white; }
-        .btn-edit { background-color: #f59e0b; color: white; }
-        .btn-attendance { background-color: #10b981; color: white; }
     </style>
 </head>
 <body>
@@ -112,10 +106,6 @@ if ($event_date < $today_date) {
 
                 <div class="action-button-container">
                     <a href="manage_events.php" class="btn btn-back">⬅️ Return to Workspace</a>
-                    <div class="btn-group-left">
-                        <a href="manage_events.php?edit_id=<?php echo $event['eventID']; ?>" class="btn btn-edit">✏️ Edit Details</a>
-                        <a href="manage_attendance.php?eventID=<?php echo $event['eventID']; ?>" class="btn btn-attendance">📋 Attendance List</a>
-                    </div>
                 </div>
             </div>
         </div>

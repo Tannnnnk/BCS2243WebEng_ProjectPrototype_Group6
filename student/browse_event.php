@@ -24,27 +24,7 @@ if (empty($clubID)) {
 $msg = "";
 $msg_type = "";
 
-// --- HANDLING DYNAMIC REGISTRATION ACTION FORM FLOW ---
-if (isset($_POST['register_event'])) {
-    $eventID = mysqli_real_escape_string($link, $_POST['eventID']);
-    $today_date = date('Y-m-d');
-    
-    $dup_check = mysqli_query($link, "SELECT * FROM eventregistration WHERE userID = '$userID' AND eventID = '$eventID'");
-    if (mysqli_num_rows($dup_check) > 0) {
-        $msg = "⚠️ You are already registered for this event.";
-        $msg_type = "error";
-    } else {
-        $insert_sql = "INSERT INTO eventregistration (userID, eventID, registration_date, registration_status) 
-                       VALUES ('$userID', '$eventID', '$today_date', 'Confirmed');";
-        if (mysqli_query($link, $insert_sql)) {
-            $msg = "🎉 Successfully registered for this campus event!";
-            $msg_type = "success";
-        } else {
-            $msg = "❌ Error processing registration.";
-            $msg_type = "error";
-        }
-    }
-}
+
 
 // --- CONTROLLER LOGIC: FILTER PARAMETERS ---
 $search_keyword = isset($_GET['search']) ? mysqli_real_escape_string($link, $_GET['search']) : '';
@@ -141,17 +121,17 @@ $events_result = mysqli_query($link, $query_sql);
                                     <td><strong><?php echo htmlspecialchars($row['event_title']); ?></strong></td>
                                     <td>📍 <?php echo htmlspecialchars($row['event_venue']); ?></td>
                                     <td>📅 <?php echo date('d M Y', strtotime($row['event_date'])); ?></td>
-                                    <td>
-                                        <a href="student_view_event_details.php?id=<?php echo $row['eventID']; ?>" class="btn btn-view">View Details</a>
-                                        <?php if ($has_joined): ?>
-                                            <span class="status-badge-registered">Registered</span>
-                                        <?php else: ?>
-                                            <form method="POST" action="" style="display: inline;">
-                                                <input type="hidden" name="eventID" value="<?php echo htmlspecialchars($row['eventID']); ?>">
-                                                <button type="submit" name="register_event" class="btn btn-register">Register</button>
-                                            </form>
-                                        <?php endif; ?>
-                                    </td>
+                                    
+                                    <td style="white-space: nowrap;">
+    <a href="student_view_event_details.php?id=<?php echo urlencode($row['eventID']); ?>" class="btn btn-view">View Details</a>
+    
+    <?php if ($has_joined): ?>
+        <span class="status-badge-registered">Registered</span>
+    <?php else: ?>
+        <a href="register_confirm.php?eventID=<?php echo urlencode($row['eventID']); ?>" class="btn btn-register">Register</a>
+    <?php endif; ?>
+</td>
+
                                 </tr>
                             <?php endwhile; ?>
                         <?php else: ?>

@@ -10,17 +10,6 @@ if (!isset($_GET['id'])) {
 
 $eventID = mysqli_real_escape_string($link, $_GET['id']);
 
-// --- HANDLING ACTIONS (Registration Only) ---
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'register') {
-    $today = date('Y-m-d');
-    $sql = "INSERT INTO eventregistration (userID, eventID, registration_date, registration_status) 
-            VALUES ('$userID', '$eventID', '$today', 'Confirmed')";
-    mysqli_query($link, $sql);
-    
-    header("Location: student_view_event_details.php?id=$eventID");
-    exit();
-}
-
 // --- FETCH EVENT DATA ---
 $event_result = mysqli_query($link, "SELECT * FROM events WHERE eventID = '$eventID'");
 $event = mysqli_fetch_assoc($event_result);
@@ -39,7 +28,7 @@ $is_registered = mysqli_num_rows(mysqli_query($link, "SELECT * FROM eventregistr
     <title>Event Details</title>
     <style>
         .details-wrapper { max-width: 700px; margin: 20px auto; padding: 30px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; }
-        .btn-action { padding: 10px 20px; color: white; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-action { padding: 10px 20px; color: white; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; font-weight: bold; font-size: 14px; }
         .msg-box { padding: 15px; margin-top: 20px; border-radius: 8px; font-weight: bold; text-align: center; }
     </style>
 </head>
@@ -57,9 +46,8 @@ $is_registered = mysqli_num_rows(mysqli_query($link, "SELECT * FROM eventregistr
                 <?php if ($is_registered): ?>
                     <div class="msg-box" style="background:#d1fae5; color:#065f46;">✅ Already Registered</div>
                 <?php elseif ($remaining_slots > 0): ?>
-                    <form method="POST">
-                        <button type="submit" name="action" value="register" class="btn-action" style="background:#10b981;">Register Now</button>
-                    </form>
+                    <a href="register_confirm.php?eventID=<?php echo urlencode($eventID); ?>" 
+                       class="btn-action" style="background:#10b981;">Register Now</a>
                 <?php else: ?>
                     <div class="msg-box" style="background:#fee2e2; color:#991b1b;">🚫 Event Full - No slots available</div>
                 <?php endif; ?>
