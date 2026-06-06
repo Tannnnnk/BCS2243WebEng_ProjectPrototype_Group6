@@ -1,9 +1,7 @@
-
 <?php
 require_once 'student_login_materials.php';
 
 // 2. Fetch History Data 
-// We include the registration to count total events
 $sql = "SELECT e.eventID, e.event_title, e.event_date, er.registration_status 
         FROM eventregistration er
         JOIN events e ON er.eventID = e.eventID
@@ -12,7 +10,6 @@ $sql = "SELECT e.eventID, e.event_title, e.event_date, er.registration_status
 $result = mysqli_query($link, $sql);
 
 // 3. REVISED STATS: Get count and points dynamically
-// We use a LEFT JOIN or aggregate the points table properly
 $stats_sql = "SELECT 
                 (SELECT COUNT(*) FROM eventregistration WHERE userID = '$userID') as total_events,
                 (SELECT SUM(point_value) FROM points WHERE userID = '$userID') as total_points";
@@ -22,14 +19,10 @@ $stats = mysqli_fetch_assoc($stats_res);
 $total_joined = $stats['total_events'] ?? 0;
 $total_points = $stats['total_points'] ?? 0;
 $rec_level = ($total_points >= 20) ? "Gold" : "Silver"; 
-$active_role = "Student";
-
-include 'student_background.php'; 
 
 // Prepare data for the chart
 $event_titles = [];
 $event_points = [];
-// We need to fetch points per event to show a trend
 $points_detail = mysqli_query($link, "SELECT e.event_title, p.point_value 
                                       FROM points p 
                                       JOIN attendance a ON p.attendanceID = a.attendanceID 
@@ -41,7 +34,6 @@ while($p = mysqli_fetch_assoc($points_detail)) {
 }
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,24 +43,16 @@ while($p = mysqli_fetch_assoc($points_detail)) {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         h2, h3 { color: #2c3e50; margin-bottom: 20px; }
-
         .summary-dashboard { display: grid; grid-template-columns: repeat(3, minmax(350px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .summary-card { background: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; }
-
+        .summary-card { background: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
         .card-label { font-size: 0.9rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
         .card-value { font-size: 1.8rem; font-weight: bold; color: #0f172a; }
-
         .table-container { background: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 40px; }
         .data-table { width: 100%; border-collapse: collapse; text-align: left; }
         .data-table th { background-color: #f8fafc; color: #475569; font-weight: 600; padding: 15px 20px; border-bottom: 2px solid #e2e8f0; }
-        .data-table td { padding: 15px 20px; border-bottom: 1px solid #e2e8f0; color: #334155; }
-        .data-table tr:last-child td { border-bottom: none; }
-        .data-table tr:hover { background-color: #f1f5f9; }
-
+        .data-table td { padding: 15px 20px; border-bottom: 1px solid #f1f5f9; color: #334155; }
         .action-link { color: #3b82f6; text-decoration: none; font-weight: 600; }
-        .action-link:hover { text-decoration: underline; color: #2563eb; }
-
-        .chart-wrapper { background: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; height: 350px; position: relative; }
+        .chart-wrapper { background: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; height: 350px; }
     </style>
 </head>
 <body>
@@ -100,14 +84,20 @@ while($p = mysqli_fetch_assoc($points_detail)) {
                     <th>Status</th>
                     <th>Action</th>
                 </tr>
-                <?php while($row = mysqli_fetch_assoc($result)): ?>
+                <?php while($row = mysqli_fetch_assoc($result)): 
+                    $status = htmlspecialchars($row['registration_status']);
+                    $badge_color = ($status === 'Confirmed') ? '#d1fae5' : '#fee2e2';
+                    $text_color = ($status === 'Confirmed') ? '#065f46' : '#991b1b';
+                ?>
                 <tr>
                     <td><?php echo htmlspecialchars($row['event_title']); ?></td>
                     <td><?php echo htmlspecialchars($row['event_date']); ?></td>
                     <td>
-                        <?php echo htmlspecialchars($row['registration_status']); ?>
+                        <span style="background: <?php echo $badge_color; ?>; color: <?php echo $text_color; ?>; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+                            <?php echo $status; ?>
+                        </span>
                     </td>
-                    <td><a href="student_view_event_details.php?id=<?php echo $row['eventID']; ?>" class="action-link">View Details</a></td>
+                    <td><a href="student_view_event_details.php?id=<?php echo $row['eventID']; ?>" class="action-link">View</a></td>
                 </tr>
                 <?php endwhile; ?>
             </table>
@@ -130,28 +120,12 @@ while($p = mysqli_fetch_assoc($points_detail)) {
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)', 
                     borderWidth: 2,
-                    pointBackgroundColor: '#ffffff',
-                    pointBorderColor: '#3b82f6',
-                    pointRadius: 4,
                     fill: true 
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, 
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0 
-                        }
-                    }
-                }
+                maintainAspectRatio: false
             }
         });
     </script>

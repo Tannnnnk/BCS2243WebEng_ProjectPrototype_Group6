@@ -35,10 +35,13 @@ $result_events = mysqli_query($link, $sql);
     <style>
         .content-area { padding: 20px; }
         .central-board { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 25px; }
+        .board-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
+        .filter-container { display: flex; gap: 15px; margin-bottom: 20px; }
+        .filter-box { flex: 1; display: flex; flex-direction: column; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th { background: #f8fafc; padding: 12px; border-bottom: 2px solid #e2e8f0; text-align: left; }
         td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; }
-        .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; display: inline-block; cursor: pointer; }
+        .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; display: inline-block; cursor: pointer; border: none; }
     </style>
 </head>
 <body>
@@ -46,7 +49,29 @@ $result_events = mysqli_query($link, $sql);
     <div class="content-area">
         <div class="central-board">
             <div class="board-title">📝 Manage Events Workspace</div>
-            <table>
+
+            <div class="filter-container">
+                <div class="filter-box">
+                    <label style="font-size:12px; font-weight:bold; margin-bottom:5px;">Search Events</label>
+                    <input type="text" id="searchInput" placeholder="Search title or venue..." style="padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                </div>
+                <div class="filter-box">
+                    <label style="font-size:12px; font-weight:bold; margin-bottom:5px;">Status Filter</label>
+                    <select id="statusFilter" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                        <option value="">All Statuses</option>
+                        <option value="Upcoming">Upcoming</option>
+                        <option value="Past">Past</option>
+                    </select>
+                </div>
+                <div class="filter-box" style="justify-content: flex-end;">
+                    <button class="btn" style="background:#64748b; color:white;" onclick="applyFilters()">Apply Filters</button>
+                </div>
+                <div class="filter-box" style="justify-content: flex-end;">
+                    <button class="btn" style="background:#94a3b8; color:white;" onclick="resetFilters()">Reset</button>
+                </div>
+            </div>
+
+            <table id="eventsTable">
                 <thead>
                     <tr><th>EventID</th><th>Title</th><th>Date & Time</th><th>Venue</th><th>Capacity</th><th>Status</th><th>Select</th></tr>
                 </thead>
@@ -66,10 +91,10 @@ $result_events = mysqli_query($link, $sql);
             </table>
             
             <div style="margin-top:20px; display:flex; gap:10px;">
-                <a href="#" id="view_btn" class="btn" style="background:#0ea5e9; color:white;" onclick="return checkSelection('view')">👁️ View Details</a>
-                <a href="#" id="edit_btn" class="btn" style="background:#f59e0b; color:white;" onclick="return checkSelection('edit')">✏️ Edit</a>
-                <a href="#" id="del_btn" class="btn" style="background:#ef4444; color:white;" onclick="return checkSelection('delete')">🗑️ Delete</a>
-                <a href="#" id="list_btn" class="btn" style="background:#10b981; color:white;" onclick="return checkSelection('list')">📋 Participants List</a>
+                <a href="#" class="btn" style="background:#0ea5e9; color:white;" onclick="return checkSelection('view')">👁️ View Details</a>
+                <a href="#" class="btn" style="background:#f59e0b; color:white;" onclick="return checkSelection('edit')">✏️ Edit</a>
+                <a href="#" class="btn" style="background:#ef4444; color:white;" onclick="return checkSelection('delete')">🗑️ Delete</a>
+                <a href="#" class="btn" style="background:#10b981; color:white;" onclick="return checkSelection('list')">📋 Participants List</a>
             </div>
         </div>
     </div>
@@ -78,6 +103,31 @@ $result_events = mysqli_query($link, $sql);
         let selectedID = null;
         const clubID = "<?php echo urlencode($clubID); ?>";
         function selectEvent(id) { selectedID = id; }
+
+        function applyFilters() {
+            let search = document.getElementById("searchInput").value.toLowerCase();
+            let status = document.getElementById("statusFilter").value.toLowerCase();
+            let table = document.getElementById("eventsTable");
+            let tr = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < tr.length; i++) {
+                let title = tr[i].getElementsByTagName("td")[1].textContent.toLowerCase();
+                let venue = tr[i].getElementsByTagName("td")[3].textContent.toLowerCase();
+                let rowStatus = tr[i].getElementsByTagName("td")[5].textContent.toLowerCase();
+                
+                let matchesSearch = (title.indexOf(search) > -1 || venue.indexOf(search) > -1);
+                let matchesStatus = (status === "" || rowStatus === status);
+                
+                tr[i].style.display = (matchesSearch && matchesStatus) ? "" : "none";
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById("searchInput").value = "";
+            document.getElementById("statusFilter").value = "";
+            let tr = document.getElementById("eventsTable").getElementsByTagName("tr");
+            for (let i = 1; i < tr.length; i++) tr[i].style.display = "";
+        }
 
         function checkSelection(action) {
             if (!selectedID) { alert('Please select an event from the list first.'); return false; }
